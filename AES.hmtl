@@ -1,0 +1,17 @@
+ <!DOCTYPE html>
+<html>
+<head>
+<img src="banner.jpe" width="100%"> </img>
+<meta charset="UTF-8">
+<title>Title of the document</title>
+</head>
+<body>
+<input type="file" id="fileinput" />
+ <button type="button" id="Encrypt">Encrypt</button> 
+<div></div>
+<input type="file" id="fileinput" />
+ <button type="button" id="Decrypt">Decrypt</button> 
+</body>
+
+ <script src="webController.js"></script> 
+</html>
