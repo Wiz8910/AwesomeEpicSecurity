@@ -1,17 +1,18 @@
  <!DOCTYPE html>
 <html>
 <head>
-<img src="banner.jpe" width="100%"> </img>
 <meta charset="UTF-8">
 <title>Title of the document</title>
 </head>
 <body>
-<input type="file" id="fileinput" />
- <button type="button" id="Encrypt">Encrypt</button> 
+<label for="fileInput">Encrypt</label>
+<input type="file" id="fileInput" value="Encrypt"/>
+<input type="text" id="keyLength" value="Key Length"/>
 <div></div>
-<input type="file" id="fileinput" />
- <button type="button" id="Decrypt">Decrypt</button> 
+<label for="fileOutput">Decrypt</label>
+<input type="file" id="fileOutput" value="Decrypt" />
+<input type="text" id="password" value="password"/>
 </body>
-
- <script src="webController.js"></script> 
+<script src="webController.js"></script> 
 </html>
+<img src="banner.jpe" width="100%"> </img>
