@@ -4,6 +4,7 @@ var ejs = require('ejs');
 var path = require('path');
 var app = express();
 var rsa = require(path.join(__dirname, 'scripts', 'RSA.js'));
+var aes = require(path.join(__dirname, 'scripts', 'AES.js'));
 var fs = require('fs');
 
 // Using ejs to render html files 
@@ -19,7 +20,84 @@ app.get('/', function (req, res) {
 });
 
 app.post('/encrypt_aes', function (req, res) {
-	res.send('done');
+	var input = req.body;
+	var keySize = input.Size;
+	var file = input.File;
+    var password = input.Pass;
+    var newFile = input.NewFile;
+
+	var startTime;
+	var endTime;
+
+	var cipher;
+    var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
+        if(err)
+        {
+            throw (err);
+        }
+        startTime = new Date().getTime() / 1000;
+        var result = aes.encrypt(data,password,keySize);
+        cipher = result[0];
+        password = result[1];
+        if(newFile!=""){
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), cipher, 'binary',function (err) {
+                if(err)
+                {
+                    throw (err);
+                }
+            });
+        }
+        endTime = new Date().getTime() / 1000;
+        res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
+            { 	
+                AESInput : data,
+                AESPassword: password,
+                AESCipher : cipher, 
+                AESKeyLength : keySize,
+                AESEncryptionTime : (endTime - startTime)
+            }
+        );
+    });
+});
+app.post('/decrypt_aes', function (req, res) {
+	var input = req.body;
+	var keySize = input.Size;
+	var file = input.File;
+    var password = input.Pass;
+    var newFile = input.NewFile;
+
+	var startTime;
+	var endTime;
+
+	var plaintext;
+	//aes.generateKeys(keySize);
+    
+    var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
+        if(err)
+        {
+            throw (err);
+        }
+        startTime = new Date().getTime() / 1000;
+        plaintext = aes.decrypt(data,password,keySize);
+        endTime = new Date().getTime() / 1000;
+        if(newFile!=""){
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), plaintext, 'binary', function (err) {
+                if(err)
+                {
+                    throw (err);
+                }
+            });
+        }
+        res.render(path.join(__dirname, 'views', 'AESDecryptionResults.html'), 
+            { 	
+                AESInput : data,
+                AESPassword: password,
+                AESCipher : plaintext, 
+                AESKeyLength : keySize,
+                AESDecryptionTime : (endTime - startTime)
+            }
+        );
+    });
 });
 
 app.post('/encrypt_rsa', function (req, res) {
@@ -61,7 +139,7 @@ app.post('/encrypt_rsa', function (req, res) {
 			cipher = rsa.encrypt(toHex(data));
 			endTime = new Date().getTime() / 1000;
 
-			res.render(path.join(__dirname, 'views', 'RSAEncryptionResults.html'), 
+			res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
 				{ 	RSAMessage : message,
 					RSAMessageHex : toHex(message),
 					RSACipher : cipher.toHex(), 
@@ -86,7 +164,6 @@ app.post('/decrypt_rsa', function (req, res) {
 	var startTime;
 	var endTime;
 
-	console.log(decrypt);
 	if(decrypt == 'previous')
 	{
 		startTime = new Date().getTime() / 1000;

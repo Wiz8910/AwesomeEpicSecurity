@@ -4,6 +4,9 @@
  
 var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
  
+module.exports ={
+ 
+ /*
 function test(e){
   var file = e.target.files[0];
   if (!file) {
@@ -28,6 +31,7 @@ function test(e){
 document.getElementById('fileInput').addEventListener('change', test, false);
  
 //encrypt function
+
 function encrypt(e) {
   var file = e.target.files[0];
   if (!file) {
@@ -58,140 +62,136 @@ function decrypt(e) {
   document.getElementById('fileOutput').value=null;
 }
 document.getElementById('fileOutput').addEventListener('change', decrypt, false);
-
+*/
 //inputFile is utf8Encoded input, as is password keyLength is 128,192, or 256
-var encrypt = function(inputFile, password, keyLength){
-    //block size assumed to be constant for execution
-    var blockSize = 16;
-    if(keyLength!=128 && keyLength!=192 && keyLength!=256){
-        document.getElementById('keyLength').value = "Enter 128 192 or 256";
-        return;
-    }
-    //encrypt password to get cipher key
-    var numBytes = keyLength/8;
-    var passBytes = new Array(numBytes);
-    
-    //we take input password and if there are not enough characters add random characters
-    for(var i=0; i<numBytes; i++){
-        if(i>=password.length){
-            var temp = charSet[Math.floor(Math.random()*charSet.length)];
-            document.getElementById('password').value = document.getElementById('password').value+temp;
-            password= password+temp;
-            passBytes[i] = password.charCodeAt(i);;
-        }else{
-            passBytes[i] = password.charCodeAt(i);
-        }
-    }
-    //get the key based on password and keyExpansion function
-    var key = Cipher(passBytes, keyExpansion(passBytes));
-    
-    //now initialize counterblock for count method
-    var counterBlock = new Array(blockSize);
-    
-    var nonce = (new Date()).getTime();
-    var nonceMS = nonce%1000;
-    var nonceSec = Math.floor(nonce/1000);
-    var nonceRnd = Math.floor(Math.random() * 0xffff);
-    //counter is byte array length of 16
-    //first 8 bytes set by the nonce, second eight bytes set by count
-    for(var i=0; i<2; i++){counterBlock[i] = (nonceMS>>> i*8) & 0xff;}
-    for(var i=0; i<2; i++){counterBlock[i+2] = (nonceRnd >>> i*8) & 0xff;}
-    for(var i=0; i<4; i++){counterBlock[i+4] = (nonceSec >>> i*8) & 0xff;}
-    //and convert it to a string to go on front of the ciphertext
-    var counterText = '';
-    for(var i=0;i<8;i++) { counterText+= String.fromCharCode(counterBlock[i]);}
-    //generate key schedule - an expansion of the key into distinct Key Round for each round
-    var keySchedule = keyExpansion(key);
-    
-    var blockCount = Math.ceil(inputFile.length/blockSize);
-    var cipherText = '';
-    
-     for (var i=0; i<blockCount; i++) {
-        //need to get rid of leading bits in int counter, this method of int to counter hex came from stackoverflow
-        //we set the first half of counter with int converted to hex second half is nonce set to hex
-        for (var k=0; k<4; k++) counterBlock[15-k] = (i >>> k*8) & 0xff;
-        //then next 4 bits
-        for (var k=0; k<4; k++) counterBlock[15-k-4] = (i/0x100000000 >>> k*8) & 0xff;
-
-        var cipherCntr = Cipher(counterBlock, keySchedule);  //encrypt counter
-
-        // block size is reduced on final block
-        var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
-        var cipherChar = new Array(blockLength);
-
-        for (var k=0; k<blockLength; k++) {
-            // xor inputFile with ciphered counter char
-            cipherChar[k] = cipherCntr[k] ^ inputFile.charCodeAt(i*blockSize+k);
-            cipherChar[k] = String.fromCharCode(cipherChar[k]);
-        }
-        cipherText += cipherChar.join('');
-    }
-
-    cipherText =  counterText+cipherText;
-    console.log(cipherText);
-    return cipherText;
-    
-}
-
-var decrypt = function(cipherText, password, keyLength) {
-    console.log(cipherText);
-    var blockSize = 16;  // block size fixed at 16 bytes / 128 bits (Nb=4) for AES
-    
-    if(keyLength!=128 && keyLength!=192 && keyLength!=256){
-        document.getElementById('keyLength').value = "Enter 128 192 or 256";
-        return;
-    }
-    // use AES to encrypt password (mirroring encrypt routine)
-    var numBytes = keyLength/8;  // no bytes in key
-    var passBytes = new Array(numBytes);
-    for (var i=0; i<numBytes; i++) {
-        //passBytes[i] = i<password.length ?  password.charCodeAt(i) : 0;
-        if(i>=password.length){
-            console.log("Error invalid key Length");
+    encrypt : function(inputFile, password, keyLength){
+        //block size assumed to be constant for execution
+        var blockSize = 16;
+        if(keyLength!=128 && keyLength!=192 && keyLength!=256){
+            document.getElementById('keyLength').value = "Enter 128 192 or 256";
             return;
-        }else{
-            passBytes[i] = password.charCodeAt(i);
         }
-    }
-    var key = Cipher(passBytes, keyExpansion(passBytes));
-    //key = key.concat(key.slice(0, numBytes-16));  // expand key to 16/24/32 bytes long
-
-    // recover nonce from 1st 8 bytes of ciphertext
-    var counterBlock = new Array(8);
-    var counterText = cipherText.slice(0, 8);
-    for (var i=0; i<8; i++){ counterBlock[i] = counterText.charCodeAt(i);}
-
-    // generate key schedule
-    var keySchedule = keyExpansion(key);
-
-    // separate cipherText into blocks skipping past initial nonce
-    var numBlocks = Math.ceil((cipherText.length-8) / blockSize);
-    var count = new Array(numBlocks);
-    for (var i=0; i<numBlocks; i++){ count[i] = cipherText.slice(8+i*blockSize, 8+i*blockSize+blockSize);}
-    cipherText = count;  // cipherText is now array of block-length strings
-
-    // plaintext will get generated block-by-block into array of block-length strings
-    var plaintext = '';
-
-    for (var i=0; i<numBlocks; i++) {
-        // set counter (block #) in last 8 bytes of counter block (leaving nonce in 1st 8 bytes)
-        for (var k=0; k<4; k++) counterBlock[15-k] = ((i) >>> k*8) & 0xff;
-        for (var k=0; k<4; k++) counterBlock[15-k-4] = (((i+1)/0x100000000-1) >>> k*8) & 0xff;
-
-        var cipherCntr = Cipher(counterBlock, keySchedule);  // encrypt counter block
-
-        var plaintxtByte = new Array(cipherText[i].length);
-        for (var k=0; k<cipherText[i].length; k++) {
-            // -- xor plaintext with ciphered counter byte-by-byte --
-            plaintxtByte[k] = cipherCntr[k] ^ cipherText[i].charCodeAt(k);
-            plaintxtByte[k] = String.fromCharCode(plaintxtByte[k]);
+        //encrypt password to get cipher key
+        var numBytes = keyLength/8;
+        var passBytes = new Array(numBytes);
+        
+        //we take input password and if there are not enough characters add random characters
+        for(var i=0; i<numBytes; i++){
+            if(i>=password.length){
+                var temp = charSet[Math.floor(Math.random()*charSet.length)];
+                //document.getElementById('password').value = document.getElementById('password').value+temp;
+                password= password+temp;
+                passBytes[i] = password.charCodeAt(i);;
+            }else{
+                passBytes[i] = password.charCodeAt(i);
+            }
         }
-        plaintext += plaintxtByte.join('');
-    }
-    console.log(plaintext);
-    return plaintext;
-};
+        //get the key based on password and keyExpansion function
+        var key = Cipher(passBytes, keyExpansion(passBytes));
+        
+        //now initialize counterblock for count method
+        var counterBlock = new Array(blockSize);
+        
+        var nonce = (new Date()).getTime();
+        var nonceMS = nonce%1000;
+        var nonceSec = Math.floor(nonce/1000);
+        var nonceRnd = Math.floor(Math.random() * 0xffff);
+        //counter is byte array length of 16
+        //first 8 bytes set by the nonce, second eight bytes set by count
+        for(var i=0; i<2; i++){counterBlock[i] = (nonceMS>>> i*8) & 0xff;}
+        for(var i=0; i<2; i++){counterBlock[i+2] = (nonceRnd >>> i*8) & 0xff;}
+        for(var i=0; i<4; i++){counterBlock[i+4] = (nonceSec >>> i*8) & 0xff;}
+        //and convert it to a string to go on front of the ciphertext
+        var counterText = '';
+        for(var i=0;i<8;i++) { counterText+= String.fromCharCode(counterBlock[i]);}
+        //generate key schedule - an expansion of the key into distinct Key Round for each round
+        var keySchedule = keyExpansion(key);
+        
+        var blockCount = Math.ceil(inputFile.length/blockSize);
+        var cipherText = '';
+        
+         for (var i=0; i<blockCount; i++) {
+            //need to get rid of leading bits in int counter, this method of int to counter hex came from stackoverflow
+            //we set the first half of counter with int converted to hex second half is nonce set to hex
+            for (var k=0; k<4; k++) counterBlock[15-k] = (i >>> k*8) & 0xff;
+            //then next 4 bits
+            for (var k=0; k<4; k++) counterBlock[15-k-4] = (i/0x100000000 >>> k*8) & 0xff;
 
+            var cipherCntr = Cipher(counterBlock, keySchedule);  //encrypt counter
+
+            // block size is reduced on final block
+            var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
+            var cipherChar = new Array(blockLength);
+
+            for (var k=0; k<blockLength; k++) {
+                // xor inputFile with ciphered counter char
+                cipherChar[k] = cipherCntr[k] ^ inputFile.charCodeAt(i*blockSize+k);
+                cipherChar[k] = String.fromCharCode(cipherChar[k]);
+            }
+            cipherText += cipherChar.join('');
+        }
+
+        cipherText =  counterText+cipherText;
+        return [cipherText,password];
+    },
+
+    decrypt : function(cipherText, password, keyLength) {
+        var blockSize = 16;  // block size fixed at 16 bytes / 128 bits (Nb=4) for AES
+        
+        if(keyLength!=128 && keyLength!=192 && keyLength!=256){
+            console.log("Bad keyLength "+keyLength);
+            return;
+        }
+        // use AES to encrypt password (mirroring encrypt routine)
+        var numBytes = keyLength/8;  // no bytes in key
+        var passBytes = new Array(numBytes);
+        for (var i=0; i<numBytes; i++) {
+            //passBytes[i] = i<password.length ?  password.charCodeAt(i) : 0;
+            if(i>=password.length){
+                console.log("Error invalid password Length");
+                return;
+            }else{
+                passBytes[i] = password.charCodeAt(i);
+            }
+        }
+        var key = Cipher(passBytes, keyExpansion(passBytes));
+        //key = key.concat(key.slice(0, numBytes-16));  // expand key to 16/24/32 bytes long
+
+        // recover nonce from 1st 8 bytes of ciphertext
+        var counterBlock = new Array(8);
+        var counterText = cipherText.slice(0, 8);
+        for (var i=0; i<8; i++){ counterBlock[i] = counterText.charCodeAt(i);}
+
+        // generate key schedule
+        var keySchedule = keyExpansion(key);
+
+        // separate cipherText into blocks skipping past initial nonce
+        var numBlocks = Math.ceil((cipherText.length-8) / blockSize);
+        var count = new Array(numBlocks);
+        for (var i=0; i<numBlocks; i++){ count[i] = cipherText.slice(8+i*blockSize, 8+i*blockSize+blockSize);}
+        cipherText = count;  // cipherText is now array of block-length strings
+
+        // plaintext will get generated block-by-block into array of block-length strings
+        var plaintext = '';
+
+        for (var i=0; i<numBlocks; i++) {
+            // set counter (block #) in last 8 bytes of counter block (leaving nonce in 1st 8 bytes)
+            for (var k=0; k<4; k++) counterBlock[15-k] = ((i) >>> k*8) & 0xff;
+            for (var k=0; k<4; k++) counterBlock[15-k-4] = (((i+1)/0x100000000-1) >>> k*8) & 0xff;
+
+            var cipherCntr = Cipher(counterBlock, keySchedule);  // encrypt counter block
+
+            var plaintxtByte = new Array(cipherText[i].length);
+            for (var k=0; k<cipherText[i].length; k++) {
+                // -- xor plaintext with ciphered counter byte-by-byte --
+                plaintxtByte[k] = cipherCntr[k] ^ cipherText[i].charCodeAt(k);
+                plaintxtByte[k] = String.fromCharCode(plaintxtByte[k]);
+            }
+            plaintext += plaintxtByte.join('');
+        }
+        return plaintext;
+    },
+}
 // RCon is Round Constant used for the Key Expansion
 var RCon = [ [ 0x00, 0x00, 0x00, 0x00 ],
              [ 0x01, 0x00, 0x00, 0x00 ],
