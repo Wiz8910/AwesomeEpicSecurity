@@ -1,0 +1,402 @@
+<html>
+<head>
+<style type="text/css">
+	table {
+		font-family: arial, sans-serif;	
+		border-collapse: collapse;
+	}
+
+	td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+	}
+
+    .left_col {
+    	float: left;
+    	width: 50%;
+    }
+
+    .right_col {
+    	float: left;
+    	width: 50%;
+    }
+}
+</style>
+</head>
+<body style="width:100%;">
+	<div id="encryptionContainer" style="width:100%; height:50%;"  align="center">
+		<h1> Encryption </h1>
+		<div class="left_col" align="center">
+			<h2>AES Encryption</h2>
+			<div align="center">
+				<table id="AESEncryptionTable">
+					<tr>
+						<th> Variable </th>
+						<th> Value </th>
+					</tr>
+					<tr>
+						<td> File to encrypt </td>
+						<td> <input type="file" id="eAESFileInput"/> </td>
+					</tr>
+					<tr>
+						<td> Key Size </td>
+						<td> <input type="text" id="eAESKeyLength"/> </td>
+					</tr>
+					<tr>
+						<td> Password </td>
+						<td> <input type="text" id="eAESPassword"/> </td>
+					</tr>
+				</table> </br>
+				<button style="width:20%; height: 10%;" onclick="encryptAES()">
+					Encrypt
+				</button>
+			</div>
+		</div>
+		<div class="right_col" align="center">
+			<h2>RSA Encryption</h2>
+			<div align="center">
+				<table id="AESEncryptionTable">
+					<tr>
+						<th> Variable </th>
+						<th> Value </th>
+					</tr>
+					<tr>
+						<td> File to encrypt </td>
+						<td> <input type="file" id="eRSAFileInput"/> </td>
+					</tr>
+					<tr>
+						<td> Message </td>
+						<td> <input type="text" id="eRSAMessageInput"/> </td>
+					</tr>
+					<tr>
+						<td> Key Size </td>
+						<td> <input type="text" id="eRSAKeyLength"/> </td>
+					</tr>
+					<tr>
+						<td> Encryption Information </td>
+						<td>
+							<form>
+								<input type="checkbox" name="eRSAFileMethod" id="useRSAFile">Encrypt File<br>
+							</form>
+						</td>
+					</tr>
+				</table> </br>
+				<button style="width:20%; height: 10%;" onclick="encryptRSA()">
+					Encrypt
+				</button>
+			</div>
+		</div>
+	</div>
+	<div id="decryptionContainer" style="width:100%; height:50%;" align="center">
+		<h1> Decryption </h1>
+		<div class="left_col" align="center">
+			<h2>AES Decryption</h2>
+			<div align="center">
+				<table id="AESDecryptionTable">
+					<tr>
+						<th> Variable </th>
+						<th> Value </th>
+					</tr>
+					<tr>
+						<td> File to decrypt </td>
+						<td> <input type="file" id="dAESFileInput"/> </td>
+					</tr>
+					<tr>
+						<td> Key Size </td>
+						<td> <input type="text" id="dAESKeyLength"/> </td>
+					</tr>
+					<tr>
+						<td> Password </td>
+						<td> <input type="text" id="dAESPassword"/> </td>
+					</tr>
+				</table> </br>
+				<button style="width:20%; height: 10%;" onclick="decryptAES()">
+					Decrypt
+				</button>
+			</div>
+		</div>
+		<div class="right_col" align="center">
+			<h2>RSA Decryption</h2>
+			<div align="center">
+				<table id="RSADecryptionTable">
+					<tr>
+						<th> Variable </th>
+						<th> Value </th>
+					</tr>
+					<tr>
+						<td> File to Decrypt </td>
+						<td> <input type="file" id="dRSAFileInput"/> </td>
+					</tr>
+					<tr>
+						<td> Cipher to Decrypt </td>
+						<td> <input type="text" id="dRSACipher"/> </td>
+					</tr>
+					<tr>
+						<td>Public Key (n)</td>
+						<td> <input type="text" id="dRSAPublicKeyN"/> </td>
+					</tr>
+					<tr>
+						<td>Private Key (d)</td>
+						<td> <input type="text" id="dRSAPrivateKey"/></td>
+					</tr>
+					<tr>
+						<td> Decryption Method </td>
+						<td>
+							<form>
+								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionFile">Use Provided File<br>
+								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionMessage">Use Provided String<br>
+								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionPrevious">Use Preivous Encryption Info<br>
+							</form>
+						</td>
+					</tr>
+				</table> </br>
+				<button style="width:20%; height: 10%;" onclick="decryptRSA()">
+					Decrypt
+				</button>
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+	function encryptAES() {
+		var inputs = getAESEncryptionInputs();
+		
+		// If the inputs are valid, begin encryptiong
+		if(inputs.Valid)
+		{
+			// Create a form and place the data used for encryption into the form
+			var form = document.createElement('form');
+			form.action = 'http://localhost:3003/encrypt_aes';
+			form.method = 'post';
+
+			// Attach the form, submit it, then remove it (since there is not reason to keep it)
+			document.body.appendChild(form);
+			form.submit();
+			document.body.removeChild(form);
+		}
+		// Otherwise, tell the user what is wrong
+		else
+		{
+			var message = '';
+
+			for(var key in inputs.Message)
+			{
+				message = message.concat(inputs.Message[key]);
+			}
+
+			alert(message);
+		}
+	}
+	function encryptRSA() {
+		var inputs = getRSAEncryptionInputs();
+
+		// If the inputs are valid, begin encryptiong
+		if(inputs.Valid)
+		{
+			// Create a form and place the data used for encryption into the form
+			var form = document.createElement('form');
+			form.action = 'http://localhost:3003/encrypt_rsa';
+			form.method = 'post';
+
+			for(var key in inputs.Values)
+			{
+				var att = document.createElement('input');
+
+				att.setAttribute('type', 'text');
+				att.setAttribute('name', key);
+				att.setAttribute('value', inputs.Values[key]);
+
+				form.appendChild(att);
+			}
+
+			// Attach the form, submit it, then remove it (since there is not reason to keep it)
+			document.body.appendChild(form);
+			form.submit();
+			document.body.removeChild(form);
+		}
+		// Otherwise, tell the user what is wrong
+		else
+		{
+			var message = '';
+
+			for(var key in inputs.Message)
+			{
+				message = message.concat(inputs.Message[key]);
+			}
+
+			alert(message);
+		}
+	}
+	function decryptAES() {
+		
+	}
+	function decryptRSA() {
+		var inputs = getRSADecryptionInputs();
+
+		// If the inputs are valid, begin encryptiong
+		if(inputs.Valid)
+		{
+			// Create a form and place the data used for encryption into the form
+			var form = document.createElement('form');
+			form.action = 'http://localhost:3003/decrypt_rsa';
+			form.method = 'post';
+
+			for(var key in inputs.Values)
+			{
+				var att = document.createElement('input');
+
+				att.setAttribute('type', 'text');
+				att.setAttribute('name', key);
+				att.setAttribute('value', inputs.Values[key]);
+
+				form.appendChild(att);
+			}
+
+			// Attach the form, submit it, then remove it (since there is not reason to keep it)
+			document.body.appendChild(form);
+			form.submit();
+			document.body.removeChild(form);
+		}
+		// Otherwise, tell the user what is wrong
+		else
+		{
+			var message = '';
+
+			for(var key in inputs.Message)
+			{
+				message = message.concat(inputs.Message[key]);
+			}
+
+			alert(message);
+		}
+	}
+	function getAESEncryptionInputs() {
+		var password = document.getElementById('eAESPassword').value;
+		var fileInput = document.getElementById('eAESFileInput').value;
+		var keySize = document.getElementById('eAESKeyLength').value;
+
+		var result = {};
+		result.Valid = true;
+		result.Message = [];
+
+		if(password == '')
+		{
+			result.Valid = false;
+			result.Message.push('Need Password for AES Encryption!\n');
+		}
+		if(fileInput == '')
+		{
+			result.Valid = false;
+			result.Message.push('File Does Not Exist!\n');
+		}
+		if(keySize != 128 && keySize != 192 && keySize != 256)
+		{
+			result.Valid = false;
+			result.Message.push('Key Size Must be of Size 128, 192, or 256 for AES Encryption!\n');
+		}
+
+		return result;
+	}
+	function getRSAEncryptionInputs() {
+		var fileInput = document.getElementById('eRSAFileInput').value;
+		var messageInput = document.getElementById('eRSAMessageInput').value;
+		var keySize = document.getElementById('eRSAKeyLength').value;
+
+		var result = {};
+		result.Valid = true;
+		result.Message = [];
+
+		if(keySize == '')
+		{
+			result.Valid = false;
+			result.Message.push('Enter an Key Size for RSA!\n');
+		}
+		if(document.getElementById('useRSAFile').checked == true)
+		{
+			if(fileInput == '')
+			{
+				result.Valid = false;
+				result.Message.push('Provide a File to Encrypt for the RSA Public Key!\n');
+			}
+		}
+		else
+		{
+			if(messageInput == '')
+			{
+				result.Valid = false;
+				result.Message.push('Provide a Message to Encrypt for the RSA Public Key!\n');
+			}
+		}
+		
+		if(result.Valid)
+		{
+			result.Values = {};
+			result.Values.Size = keySize;
+			result.Values.File = fileInput;
+			result.Values.Message = messageInput;
+			result.Values.Input = (document.getElementById('useRSAFile').checked ? 'file' : 'message');
+		}
+
+		return result;
+	}
+	function getRSADecryptionInputs() {
+		var cipher = document.getElementById('dRSACipher').value;
+		var file = document.getElementById('dRSAFileInput').value;
+		var publicN = document.getElementById('dRSAPublicKeyN').value;
+		var private = document.getElementById('dRSAPrivateKey').value;
+
+		var result = {};
+		result.Valid = true;
+		result.Message = [];
+
+		result.Values = {};
+
+		if(!(document.getElementById('useRSADecryptionPrevious').checked))
+		{
+			if(publicN == '')
+			{
+				result.Valid = false;
+				result.Message.push('Enter the public key value for n!\n');
+			}
+			if(private == '')
+			{
+				result.Valid = false;
+				result.Message.push('Enter the private key value!\n');
+			}
+			if(document.getElementById('useRSADecryptionFile').checked == true)
+			{
+				result.Values.Decrypt = 'file';
+				if(file == '')
+				{
+					result.Valid = false;
+					result.Message.push('Enter a file to decrypt!\n');
+				}
+			}
+			else if(document.getElementById('useRSADecryptionMessage').checked == true)
+			{
+				result.Values.Decrypt = 'string';
+				if(cipher == '')
+				{
+					result.Valid = false;
+					result.Message.push('Enter a cipher to decrypt!\n');
+				}
+			}
+		}
+		else
+		{
+			result.Values.Decrypt = 'previous';
+		}
+		
+		if(result.Valid)
+		{
+			result.Values.Cipher = cipher;
+			result.Values.PublicN = publicN;
+			result.Values.Private = private;
+			result.Values.File = file;
+		}
+
+		return result;
+	}
+</script>
+</html>
