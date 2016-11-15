@@ -78,6 +78,10 @@
 						<td> <input type="text" id="eRSAKeyLength"/> </td>
 					</tr>
 					<tr>
+						<td> SaveAs </td>
+						<td> <input type="text" id="eRSAFileOutput"/> </td>
+					</tr>
+					<tr>
 						<td> Encryption Information </td>
 						<td>
 							<form>
@@ -147,6 +151,10 @@
 					<tr>
 						<td>Private Key (d)</td>
 						<td> <input type="text" id="dRSAPrivateKey"/></td>
+					</tr>
+					<tr>
+						<td> SaveAs </td>
+						<td> <input type="text" id="dRSAFileOutput"/> </td>
 					</tr>
 					<tr>
 						<td> Decryption Method </td>
@@ -329,7 +337,6 @@
 		var keySize = document.getElementById('eAESKeyLength').value;
         var newFile = document.getElementById('eAESFileOutput').value;
         
-        
 		var result = {};
 		result.Valid = true;
 		result.Message = [];
@@ -400,6 +407,7 @@
 		var fileInput = document.getElementById('eRSAFileInput').value;
 		var messageInput = document.getElementById('eRSAMessageInput').value;
 		var keySize = document.getElementById('eRSAKeyLength').value;
+		var newFile = document.getElementById('eRSAFileOutput').value;
 
 		var result = {};
 		result.Valid = true;
@@ -433,6 +441,7 @@
 			result.Values.Size = keySize;
 			result.Values.File = fileInput;
 			result.Values.Message = messageInput;
+			result.Values.NewFile = newFile
 			result.Values.Input = (document.getElementById('useRSAFile').checked ? 'file' : 'message');
 		}
 
@@ -443,6 +452,7 @@
 		var file = document.getElementById('dRSAFileInput').value;
 		var publicN = document.getElementById('dRSAPublicKeyN').value;
 		var private = document.getElementById('dRSAPrivateKey').value;
+		var newFile = document.getElementById('dRSAFileOutput').value;
 
 		var result = {};
 		result.Valid = true;
@@ -492,6 +502,7 @@
 			result.Values.PublicN = publicN;
 			result.Values.Private = private;
 			result.Values.File = file;
+			result.Values.NewFile = newFile;
 		}
 
 		return result;

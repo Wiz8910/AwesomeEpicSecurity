@@ -106,6 +106,7 @@ app.post('/encrypt_rsa', function (req, res) {
 	var message = input.Message;
 	var file = input.File;
 	var method = input.Input;
+	var newFile = input.NewFile;
 
 	var startTime;
 	var endTime;
@@ -117,6 +118,15 @@ app.post('/encrypt_rsa', function (req, res) {
 		startTime = new Date().getTime() / 1000;
 		cipher = rsa.encrypt(toHex(message));
 		endTime = new Date().getTime() / 1000;
+
+		if(newFile!=""){
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), cipher.toHex(), 'binary', function (err) {
+                if(err)
+                {
+                    throw (err);
+                }
+            });
+        }
 
 		res.render(path.join(__dirname, 'views', 'RSAEncryptionResults.html'), 
 			{ 	RSAMessage : message,
@@ -130,7 +140,7 @@ app.post('/encrypt_rsa', function (req, res) {
 	} 
 	else
 	{
-		var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'utf-8', function (err, data) {
+		var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
 			if(err)
 			{
 				throw (err);
@@ -139,7 +149,16 @@ app.post('/encrypt_rsa', function (req, res) {
 			cipher = rsa.encrypt(toHex(data));
 			endTime = new Date().getTime() / 1000;
 
-			res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
+			if(newFile!=""){
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), cipher.toHex(), 'binary', function (err) {
+	                if(err)
+	                {
+	                    throw (err);
+	                }
+	            });
+	        }
+
+			res.render(path.join(__dirname, 'views', 'RSAEncryptionResults.html'), 
 				{ 	RSAMessage : message,
 					RSAMessageHex : toHex(message),
 					RSACipher : cipher.toHex(), 
@@ -159,6 +178,7 @@ app.post('/decrypt_rsa', function (req, res) {
 	var cipher = input.Cipher;
 	var decrypt = input.Decrypt;
 	var file = input.File;
+	var newFile = input.NewFile;
 
 	var message;
 	var startTime;
@@ -169,6 +189,15 @@ app.post('/decrypt_rsa', function (req, res) {
 		startTime = new Date().getTime() / 1000;
 		message = toString(rsa.decrypt());
 		endTime = new Date().getTime() / 1000;
+
+		if(newFile!=""){
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), message, 'binary', function (err) {
+                if(err)
+                {
+                    throw (err);
+                }
+            });
+        }
 
 		res.render(path.join(__dirname, 'views', 'RSADecryptionResults.html'), 
 		{ 	RSACipher : rsa.getCipherHex(),
@@ -183,6 +212,15 @@ app.post('/decrypt_rsa', function (req, res) {
 			message = toString(rsa.decrypt_hex(publicN, private, cipher));
 			endTime = new Date().getTime() / 1000;
 
+			if(newFile!=""){
+	            fs.writeFile(path.join(__dirname, 'inputs', newFile), message, 'binary', function (err) {
+	                if(err)
+	                {
+	                    throw (err);
+	                }
+	            });
+	        }
+
 			res.render(path.join(__dirname, 'views', 'RSADecryptionResults.html'), 
 				{ 	RSACipher : rsa.getCipherHex(),
 					RSAMessage : message,
@@ -190,7 +228,7 @@ app.post('/decrypt_rsa', function (req, res) {
 		}
 		else if(decrypt == 'file')
 		{
-			var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'utf-8', function (err, data) {
+			var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
 				if(err)
 				{
 					throw (err);
@@ -199,7 +237,14 @@ app.post('/decrypt_rsa', function (req, res) {
 				message = toString(rsa.decrypt_hex(publicN, private, data));
 				endTime = new Date().getTime() / 1000;
 
-				var endTime = new Date().getTime() / 1000;
+				if(newFile!=""){
+		            fs.writeFile(path.join(__dirname, 'inputs', newFile), message, 'binary', function (err) {
+		                if(err)
+		                {
+		                    throw (err);
+		                }
+		            });
+		        }
 
 				res.render(path.join(__dirname, 'views', 'RSADecryptionResults.html'), 
 					{ 	RSACipher : rsa.getCipherHex(),
