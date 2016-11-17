@@ -191,7 +191,7 @@ app.post('/decrypt_rsa', function (req, res) {
 		endTime = new Date().getTime() / 1000;
 
 		if(newFile!=""){
-            fs.writeFile(path.join(__dirname, 'inputs', newFile), message, 'binary', function (err) {
+            fs.writeFile(path.join(__dirname, 'inputs', newFile), message.toHex(), 'binary', function (err) {
                 if(err)
                 {
                     throw (err);

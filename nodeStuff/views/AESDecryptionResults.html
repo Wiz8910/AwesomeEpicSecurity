@@ -37,14 +37,6 @@
 					<td id="AESPassword"></td>
 				</tr>
 				<tr>
-					<td>Input</td>
-					<td id="AESInput"></td>
-				</tr>
-				<tr>
-					<td>PlainText</td>
-					<td id="AESCipher"></td>
-				</tr>
-				<tr>
 					<td>Seconds to Encrypt</td>
 					<td id="AESDecryptionTime"></td>
 				</tr>
@@ -53,8 +45,6 @@
 	</div>
 </body>
 <script type="text/javascript">
-	var AESInput = <%- JSON.stringify(AESInput) %>;
-	var AESCipher = <%- JSON.stringify(AESCipher) %>;
 	var AESPassword = <%- JSON.stringify(AESPassword) %>;
 	var AESKeyLength = <%- JSON.stringify(AESKeyLength) %>;
 	var AESDecryptionTime = <%- JSON.stringify(AESDecryptionTime) %>;
@@ -62,14 +52,6 @@
     if(AESKeyLength != '')
 	{
 		document.getElementById('AESKeyLength').innerHTML = AESKeyLength;
-	}
-    if(AESInput != '')
-	{
-		document.getElementById('AESInput').innerHTML = AESInput;
-	}
-	if(AESCipher != '')
-	{
-		document.getElementById('AESCipher').innerHTML = AESCipher;
 	}
 	if(AESPassword != '')
 	{

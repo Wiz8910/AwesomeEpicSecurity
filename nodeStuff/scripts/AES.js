@@ -29,41 +29,9 @@ function test(e){
   document.getElementById('fileInput').value=null;
 }
 document.getElementById('fileInput').addEventListener('change', test, false);
- 
-//encrypt function
-
-function encrypt(e) {
-  var file = e.target.files[0];
-  if (!file) {
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var contents = e.target.result;
-    encrypt(contents,document.getElementById('password').value,document.getElementById('keyLength').value);
-  };
-  reader.readAsDataURL(file);
-  document.getElementById('fileInput').value=null;
-}
-//document.getElementById('fileInput').addEventListener('change', encrypt, false);
-
-//decrypt function
-function decrypt(e) {
-  var file = e.target.files[0];
-  if (!file) {
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var contents = e.target.result;
-    decrypt(contents,document.getElementById('password').value,document.getElementById('keyLength'));
-  };
-  reader.readAsDataURL(file);
-  document.getElementById('fileOutput').value=null;
-}
-document.getElementById('fileOutput').addEventListener('change', decrypt, false);
 */
-//inputFile is utf8Encoded input, as is password keyLength is 128,192, or 256
+
+//inputFile is binary input to char[] as is password, keyLength is 128,192, or 256
     encrypt : function(inputFile, password, keyLength){
         //block size assumed to be constant for execution
         var blockSize = 16;
@@ -192,7 +160,7 @@ document.getElementById('fileOutput').addEventListener('change', decrypt, false)
         return plaintext;
     },
 }
-// RCon is Round Constant used for the Key Expansion
+// Round Constant used for the Key Expansion
 var RCon = [ [ 0x00, 0x00, 0x00, 0x00 ],
              [ 0x01, 0x00, 0x00, 0x00 ],
              [ 0x02, 0x00, 0x00, 0x00 ],
@@ -230,11 +198,6 @@ var Cipher = function(input, word){
     var state = [[], [], [], []];
     //need to convert input to 2d byte array
     for (var i=0; i<4*blockSize; i++) state[i%4][Math.floor(i/4)] = input[i];
-    /*for(var i=0; i<4*4; i++){
-        for(var k=0; k<4; k++){
-            state[i][k] = input[Math.floor(i/4)+k];
-        }
-    }*/
     state = AddRoundKey(state,word,0,blockSize);
     //last round is different behavior
     for(var i=1; i<rounds-1; i++){
@@ -251,11 +214,6 @@ var Cipher = function(input, word){
     //now output as 1d array
     var output = new Array(4*blockSize);
     for (var i=0; i<4*blockSize; i++) output[i] = state[i%4][Math.floor(i/4)];
-    /*for(var i=0; i<4*blockSize;i++){
-        for(var k=0; k<blockSize; k++){
-            output[i*4+k] = state[i][k];
-        }
-    }*/
     return output;
 }
 
@@ -325,7 +283,7 @@ var SubWord = function(word){
     return word;
 }
 
-//rotate for keyShift
+//rotation for keyShift
 var RotWord = function(word){
     var tmp = word[0];
     for(var i=0; i<3; i++){ word[i] = word[i+1]; }
