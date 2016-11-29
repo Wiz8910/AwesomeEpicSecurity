@@ -3,36 +3,11 @@
  */
  
 var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
- 
-module.exports ={
- 
- /*
-function test(e){
-  var file = e.target.files[0];
-  if (!file) {
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var contents = e.target.result;
-    console.log("test");
-    console.log(contents);
-    var result =decrypt(encrypt(contents,document.getElementById('password').value,document.getElementById('keyLength').value),document.getElementById('password').value,document.getElementById('keyLength').value);
-    console.log(result);
-    if(result===contents){
-        console.log("worked");
-    }else{
-        console.log("Bad Result");
-    }
-  };
-  reader.readAsDataURL(file);
-  document.getElementById('fileInput').value=null;
-}
-document.getElementById('fileInput').addEventListener('change', test, false);
-*/
+var maxBytes = 100000;
 
-//inputFile is binary input to char[] as is password, keyLength is 128,192, or 256
-    encrypt : function(inputFile, password, keyLength){
+module.exports ={
+ //inputFile is binary input to char[] as is password, keyLength is 128,192, or 256
+    encryptCounter : function(inputFile, password, keyLength){
         //block size assumed to be constant for execution
         var blockSize = 16;
         if(keyLength!=128 && keyLength!=192 && keyLength!=256){
@@ -49,11 +24,12 @@ document.getElementById('fileInput').addEventListener('change', test, false);
                 var temp = charSet[Math.floor(Math.random()*charSet.length)];
                 //document.getElementById('password').value = document.getElementById('password').value+temp;
                 password= password+temp;
-                passBytes[i] = password.charCodeAt(i);;
+                passBytes[i] = password.charCodeAt(i);
             }else{
                 passBytes[i] = password.charCodeAt(i);
             }
         }
+        
         //get the key based on password and keyExpansion function
         var key = Cipher(passBytes, keyExpansion(passBytes));
         
@@ -85,7 +61,7 @@ document.getElementById('fileInput').addEventListener('change', test, false);
             //then next 4 bits
             for (var k=0; k<4; k++) counterBlock[15-k-4] = (i/0x100000000 >>> k*8) & 0xff;
 
-            var cipherCntr = Cipher(counterBlock, keySchedule);  //encrypt counter
+            var cipherText = Cipher(counterBlock, keySchedule);  //encrypt counter
 
             // block size is reduced on final block
             var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
@@ -103,14 +79,13 @@ document.getElementById('fileInput').addEventListener('change', test, false);
         return [cipherText,password];
     },
 
-    decrypt : function(cipherText, password, keyLength) {
+    decryptCounter : function(cipherText, password, keyLength,mode) {
         var blockSize = 16;  // block size fixed at 16 bytes / 128 bits (Nb=4) for AES
         
         if(keyLength!=128 && keyLength!=192 && keyLength!=256){
             console.log("Bad keyLength "+keyLength);
             return;
-        }
-        // use AES to encrypt password (mirroring encrypt routine)
+        }// use AES to encrypt password (mirroring encrypt routine)
         var numBytes = keyLength/8;  // no bytes in key
         var passBytes = new Array(numBytes);
         for (var i=0; i<numBytes; i++) {
@@ -159,6 +134,164 @@ document.getElementById('fileInput').addEventListener('change', test, false);
         }
         return plaintext;
     },
+ 
+ 
+    encryptCipher : function(inputFile, password, keyLength,fileWriter,mode){
+        //block size assumed to be constant for execution
+        var blockSize = 16;
+        if(keyLength!=128 && keyLength!=192 && keyLength!=256){
+            document.getElementById('keyLength').value = "Enter 128 192 or 256";
+            return;
+        }
+        //encrypt password to get cipher key
+        var numBytes = keyLength/8;
+        var passBytes = new Array(numBytes);
+        
+        //we take input password and if there are not enough characters add random characters
+        for(var i=0; i<numBytes; i++){
+            if(i>=password.length){
+                var temp = charSet[Math.floor(Math.random()*charSet.length)];
+                //document.getElementById('password').value = document.getElementById('password').value+temp;
+                password= password+temp;
+                passBytes[i] = password.charCodeAt(i);;
+            }else{
+                passBytes[i] = password.charCodeAt(i);
+            }
+        }
+        
+        //console.log(passBytes);
+        //get the key based on password and keyExpansion function
+        var key = Cipher(passBytes, keyExpansion(passBytes));
+        
+        //now initialize counterblock for count method
+        var plaintextBlock = new Array(blockSize);
+        
+        //get the key schedule
+        var keySchedule = keyExpansion(key);
+        
+        var blockCount = Math.ceil(inputFile.length/blockSize);
+        var cipherText = [];
+        var prevCipherBlock;
+        var outText="";
+        for (var i=0; i<blockCount; i++) {
+            // block size is reduced on final block
+            var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
+            
+            for(var k=0;k<blockLength;k++){
+                plaintextBlock[k]=inputFile.charCodeAt(i*blockLength+k);
+            }
+            if(mode==="cbc"){
+                if(i==0){
+                    //xor first block with password
+                    for (var k=0; k<blockLength; k++) {
+                        // xor inputFile with ciphered counter char
+                        plaintextBlock[k] = passBytes[k] ^ plaintextBlock[k];
+                        //plaintextBlock[k] = String.fromCharCode(plaintextBlock[k]);
+                    }
+                }else{
+                    //
+                    //otherwise xor with prevCipherBlock
+                    for (var k=0; k<blockLength; k++) {
+                        // xor inputFile with ciphered counter char
+                        plaintextBlock[k] = prevCipherBlock[k] ^ plaintextBlock[k];
+                    }
+                }
+            }
+            var cipherBlock = Cipher(plaintextBlock, keySchedule);  //encrypt counter
+            
+            var formatted ="";
+            for(var k=0;k<cipherBlock.length;k++){
+                formatted+=String.fromCharCode(cipherBlock[k]);
+            }
+            outText+=formatted;
+            if(i%maxBytes==0){
+                fileWriter.write(outText,'binary');
+                outText="";
+            }
+            if(mode==="cbc"){
+                prevCipherBlock = cipherBlock;
+            }
+        }
+        if(outText!=""){
+            fileWriter.write(outText,'binary');
+        }
+        //console.log(prevCipherBlock);
+        return password;
+    },
+
+    decryptCipher: function(inputFile, password, keyLength,fileWriter,mode){
+        
+        var blockSize = 16;
+        if(keyLength!=128 && keyLength!=192 && keyLength!=256){
+            document.getElementById('keyLength').value = "Enter 128 192 or 256";
+            return;
+        }
+        
+        //encrypt password to get cipher key
+        var numBytes = keyLength/8;
+        var passBytes = new Array(numBytes);
+        //we take input password and if there are not enough characters add random characters
+        for(var i=0; i<numBytes; i++){
+            passBytes[i] = password.charCodeAt(i);
+        }
+        //get the key based on password and keyExpansion function
+        var key = Cipher(passBytes, keyExpansion(passBytes));
+        
+        //now initialize counterblock for count method
+        var encryptextBlock = new Array(blockSize);
+        
+        //get the key schedule
+        var keySchedule = keyExpansion(key);
+        
+        var blockCount = Math.ceil(inputFile.length/blockSize);
+        var cipherXor;
+        var prevCipherBlock;
+        var outText="";
+        for (var i=0; i<blockCount; i++) {
+            // block size is reduced on final block
+            var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
+            
+            for(var k=0;k<blockLength;k++){
+                encryptextBlock[k]=inputFile.charCodeAt(i*blockSize+k);
+            }
+            //console.log(encryptextBlock);
+            var plainBlock = decrCipher(encryptextBlock, keySchedule);  //encrypt counter
+            if(mode ==="cbc"){
+                if(i==0){
+                    //xor first block with password
+                    for (var k=0; k<blockLength; k++) {
+                        // xor inputFile with ciphered counter char
+                        plainBlock[k] = passBytes[k] ^ plainBlock[k];
+                        //plainBlock[k] = String.fromCharCode(plainBlock[k]);
+                    }
+                    prevCipherBlock = encryptextBlock.slice();
+                }else{
+                    //otherwise xor with prevPlainBlock
+                    for (var k=0; k<blockLength; k++) {
+                        // xor inputFile with ciphered counter char
+                        plainBlock[k] = prevCipherBlock[k] ^ plainBlock[k];
+                        //plainBlock[k] = String.fromCharCode(plainBlock[k]);
+                    }
+                    prevCipherBlock = encryptextBlock.slice();
+                }
+            }
+            var formatted ="";
+            for(var k=0;k<plainBlock.length;k++){
+                formatted+=String.fromCharCode(plainBlock[k]);
+            }
+            outText+=formatted;
+            if(i%maxBytes==0){
+                fileWriter.write(outText,'binary');
+                outText="";
+            }
+        }
+        if(outText!=""){
+            fileWriter.write(outText,'binary');
+        }
+        return;
+    },    
+        
+
 }
 // Round Constant used for the Key Expansion
 var RCon = [ [ 0x00, 0x00, 0x00, 0x00 ],
@@ -190,7 +323,24 @@ var sBox = [ 0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0x
              0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
              0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
              0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16 ];
-             
+var InvsBox = [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
+               0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
+               0x54, 0x7B, 0x94, 0x32, 0xA6, 0xC2, 0x23, 0x3D, 0xEE, 0x4C, 0x95, 0x0B, 0x42, 0xFA, 0xC3, 0x4E,
+               0x08, 0x2E, 0xA1, 0x66, 0x28, 0xD9, 0x24, 0xB2, 0x76, 0x5B, 0xA2, 0x49, 0x6D, 0x8B, 0xD1, 0x25,
+               0x72, 0xF8, 0xF6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xD4, 0xA4, 0x5C, 0xCC, 0x5D, 0x65, 0xB6, 0x92,
+               0x6C, 0x70, 0x48, 0x50, 0xFD, 0xED, 0xB9, 0xDA, 0x5E, 0x15, 0x46, 0x57, 0xA7, 0x8D, 0x9D, 0x84,
+               0x90, 0xD8, 0xAB, 0x00, 0x8C, 0xBC, 0xD3, 0x0A, 0xF7, 0xE4, 0x58, 0x05, 0xB8, 0xB3, 0x45, 0x06,
+               0xD0, 0x2C, 0x1E, 0x8F, 0xCA, 0x3F, 0x0F, 0x02, 0xC1, 0xAF, 0xBD, 0x03, 0x01, 0x13, 0x8A, 0x6B,
+               0x3A, 0x91, 0x11, 0x41, 0x4F, 0x67, 0xDC, 0xEA, 0x97, 0xF2, 0xCF, 0xCE, 0xF0, 0xB4, 0xE6, 0x73,
+               0x96, 0xAC, 0x74, 0x22, 0xE7, 0xAD, 0x35, 0x85, 0xE2, 0xF9, 0x37, 0xE8, 0x1C, 0x75, 0xDF, 0x6E,
+               0x47, 0xF1, 0x1A, 0x71, 0x1D, 0x29, 0xC5, 0x89, 0x6F, 0xB7, 0x62, 0x0E, 0xAA, 0x18, 0xBE, 0x1B,
+               0xFC, 0x56, 0x3E, 0x4B, 0xC6, 0xD2, 0x79, 0x20, 0x9A, 0xDB, 0xC0, 0xFE, 0x78, 0xCD, 0x5A, 0xF4,
+               0x1F, 0xDD, 0xA8, 0x33, 0x88, 0x07, 0xC7, 0x31, 0xB1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xEC, 0x5F,
+               0x60, 0x51, 0x7F, 0xA9, 0x19, 0xB5, 0x4A, 0x0D, 0x2D, 0xE5, 0x7A, 0x9F, 0x93, 0xC9, 0x9C, 0xEF,
+               0xA0, 0xE0, 0x3B, 0x4D, 0xAE, 0x2A, 0xF5, 0xB0, 0xC8, 0xEB, 0xBB, 0x3C, 0x83, 0x53, 0x99, 0x61,
+               0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D
+              ];
+            
 //input is bits to convert, word - key schedule 2d byte-array(128,192,256 bits)
 var Cipher = function(input, word){
     var blockSize = 4;
@@ -198,22 +348,63 @@ var Cipher = function(input, word){
     var state = [[], [], [], []];
     //need to convert input to 2d byte array
     for (var i=0; i<4*blockSize; i++) state[i%4][Math.floor(i/4)] = input[i];
+    //console.log("States");
+    //console.log(state);
     state = AddRoundKey(state,word,0,blockSize);
+    //console.log(state);
     //last round is different behavior
-    for(var i=1; i<rounds-1; i++){
+    for(var i=1; i<rounds; i++){
         state = SubBytes(state,blockSize);
         state = ShiftRows(state,blockSize);
         state = MixColumns(state,blockSize);
         state = AddRoundKey(state,word,i,blockSize);
+       // console.log(state);
     }
     //final round slightly different, no MixColumns
     state = SubBytes(state,blockSize);
     state = ShiftRows(state,blockSize);
-    state = AddRoundKey(state,word,rounds-1,blockSize);
+    state = AddRoundKey(state,word,rounds,blockSize);
+   // console.log(state);
     
     //now output as 1d array
     var output = new Array(4*blockSize);
     for (var i=0; i<4*blockSize; i++) output[i] = state[i%4][Math.floor(i/4)];
+    //console.log(output);
+    return output;
+}
+
+//input is bits to convert, word - key schedule 2d byte-array(128,192,256 bits)
+var decrCipher = function(input, word){
+    //console.log("DecrCipher");
+    //console.log(input);
+    var blockSize = 4;
+    var rounds = word.length/blockSize - 1;
+    var state = [[], [], [], []];
+    //need to convert input to 2d byte array
+    for (var i=0; i<4*blockSize; i++) state[i%4][Math.floor(i/4)] = input[i];
+    //console.log("States");
+    //console.log(state);
+    state = AddRoundKey(state,word,rounds,blockSize);
+    
+    //console.log(state);
+    for(var i=rounds-1; i>0; i--){
+        state = InvShiftRows(state,blockSize);
+        state = InvSubBytes(state,blockSize);
+        state = AddRoundKey(state,word,i,blockSize);
+        state = InvMixColumns(state,blockSize);
+       // console.log(state);
+    }
+    
+    //first round slightly different, no MixColumns
+    state = InvShiftRows(state,blockSize);
+    state = InvSubBytes(state,blockSize);
+    state = AddRoundKey(state,word,0,blockSize);
+    //console.log(state);
+    
+    //now output as 1d array
+    var output = new Array(4*blockSize);
+    for (var i=0; i<4*blockSize; i++) output[i] = state[i%4][Math.floor(i/4)];
+    //console.log(output);
     return output;
 }
 
@@ -256,7 +447,7 @@ var keyExpansion = function(key){
 }
 
 //AddRoundKey from psuedocode
-var AddRoundKey = function(state,word, round, blockSize){
+var AddRoundKey = function(state,word, round, blockSize,decrypting){
     for(var i=0; i<4; i++){
         for(var k=0; k<blockSize; k++){
             state[i][k] ^= word[round*4+k][i];
@@ -275,6 +466,15 @@ var SubBytes = function(state){
     return state;
 }
 
+var InvSubBytes = function(state){
+    for(var i=0; i<4; i++){
+        for(var k=0; k<4;k++){
+            state[i][k] = InvsBox[state[i][k]];
+        }
+    }
+    return state;
+}
+
 //use Substitute box for keyShift
 var SubWord = function(word){
     for(var i=0; i<4; i++){
@@ -282,6 +482,7 @@ var SubWord = function(word){
     }
     return word;
 }
+
 
 //rotation for keyShift
 var RotWord = function(word){
@@ -301,6 +502,15 @@ var ShiftRows = function(state){
     return state;
 }
 
+var InvShiftRows = function(state){
+    var temp = new Array(4);
+    for(var i=1; i<4; i++){
+      for(var k=3; k>=0; k--){ temp[k] = state[i][(4-i+k)%4];}
+      for(var k=3; k>=0; k--){ state[i][k] = temp[k];}
+    }
+    return state;
+}
+
 //combine bytes of columns
 var MixColumns = function(state,blockSize){
     for(var i=0; i<4; i++){
@@ -309,13 +519,54 @@ var MixColumns = function(state,blockSize){
         for(var k=0;k<4;k++){
             column1[k] = state[k][i];
             //do division
-            column2 = state[k][i]&0x80? state[k][i]<<1 ^ 0x011b : state[k][i]<<1;
+            //column2 = state[k][i]&0x80? state[k][i]<<1 ^ 0x011b : state[k][i]<<1;
         }
         //operations I don't really understand, just doing what I was told
-        state[0][i] = column2[0] ^column1[1]^column2[1]^column1[2]^column1[3];
-        state[1][i] = column1[0] ^column2[1]^column1[1]^column2[2]^column1[3];
-        state[2][i] = column1[0] ^column1[1]^column2[1]^column1[2]^column2[3];
-        state[3][i] = column1[0] ^column2[1]^column1[1]^column1[2]^column2[3];
+        state[0][i] = polyMult(column1[0],2)^polyMult(column1[1],3)^polyMult(column1[2],1)^polyMult(column1[3],1);
+        state[1][i] = polyMult(column1[0],1)^polyMult(column1[1],2)^polyMult(column1[2],3)^polyMult(column1[3],1);
+        state[2][i] = polyMult(column1[0],1)^polyMult(column1[1],1)^polyMult(column1[2],2)^polyMult(column1[3],3);
+        state[3][i] = polyMult(column1[0],3)^polyMult(column1[1],1)^polyMult(column1[2],1)^polyMult(column1[3],2);
+        /*
+        state[0][i] = column2[0] ^column1[1]^column2[1]^column1[2]^column1[3]; // {02}•a0 + {03}•a1 + a2 + a3
+        state[1][i] = column1[0] ^column2[1]^column1[1]^column2[2]^column1[3]; // a0 • {02}•a1 + {03}•a2 + a3
+        state[2][i] = column1[0] ^column1[1]^column2[1]^column1[2]^column2[3]; // a0 + a1 + {02}•a2 + {03}•a3
+        state[3][i] = column1[0] ^column2[1]^column1[1]^column1[2]^column2[3]; // {03}•a0 + a1 + a2 + {02}•a3
+        */
+    }
+    return state;
+}
+
+var polyMult = function(a,b){
+    var result = 0;
+    if(a==0||b==0){return result;}
+    if(a==1){return b;}
+    if(b==1){return a;}
+    //console.log(a+" "+b);
+    for (var i = 0; i < 8; i++) {
+        if (b & 1) result ^= a;
+        var hiBitSet = a & 0x80;
+        a = (a << 1) & 0xFF;
+        if (hiBitSet) a ^= 0x1b;
+        b >>>= 1;
+    }
+    //console.log(result);
+    return result&0xFF;
+}
+
+var InvMixColumns = function(state,blockSize){
+    for(var i=0; i<4; i++){
+        var column1 = new Array(4);
+        for(var k=0;k<4;k++){
+            column1[k] = state[k][i];
+            //do division
+            //column2 = state[k][i]&0x80? state[k][i]<<1 ^ 0x011b : state[k][i]<<1;
+        }
+        //console.log(column1);
+        //operations I don't really understand, just doing what I was told
+        state[0][i] = polyMult(column1[0],0x0E)^polyMult(column1[1],0x0B)^polyMult(column1[2],0x0D)^polyMult(column1[3],0x09);//MULTE[column1[0]]^MULTB[column1[1]]^MULTD[column1[2]]^MULT9[column1[3]];
+        state[1][i] = polyMult(column1[0],0x09)^polyMult(column1[1],0x0E)^polyMult(column1[2],0x0B)^polyMult(column1[3],0x0D);//MULT9[column1[0]]^MULTE[column1[1]]^MULTB[column1[2]]^MULTD[column1[3]];
+        state[2][i] = polyMult(column1[0],0x0D)^polyMult(column1[1],0x09)^polyMult(column1[2],0x0E)^polyMult(column1[3],0x0B);//MULTD[column1[0]]^MULT9[column1[1]]^MULTE[column1[2]]^MULTB[column1[3]];
+        state[3][i] = polyMult(column1[0],0x0B)^polyMult(column1[1],0x0D)^polyMult(column1[2],0x09)^polyMult(column1[3],0x0E);// MULTB[column1[0]]^MULTD[column1[1]]^MULT9[column1[2]]^MULTE[column1[3]];
     }
     return state;
 }

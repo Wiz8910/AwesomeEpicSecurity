@@ -25,38 +25,41 @@ app.post('/encrypt_aes', function (req, res) {
 	var file = input.File;
     var password = input.Pass;
     var newFile = input.NewFile;
-
+    var method = input.Method;
 	var startTime;
 	var endTime;
 
 	var cipher;
+    //delete file if it exist
+    fs.exists(path.join(__dirname, 'inputs', newFile),function(exists){
+        if(exists){
+            fs.unlink(path.join(__dirname, 'inputs', newFile));
+        }
+    });
     var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
         if(err)
         {
             throw (err);
         }
         startTime = new Date().getTime() / 1000;
-        var result = aes.encrypt(data,password,keySize);
-        cipher = result[0];
-        password = result[1];
-        if(newFile!=""){
-            fs.writeFile(path.join(__dirname, 'inputs', newFile), cipher, 'binary',function (err) {
-                if(err)
-                {
-                    throw (err);
+        var wstream = fs.createWriteStream(path.join(__dirname, 'inputs', newFile),{flags:'a',encoding:'binary'});
+        wstream.on('open',function(res){
+            password = aes.encryptCipher(data,password,keySize,wstream,method);
+            wstream.end();
+        });
+        wstream.on('finish',function(){
+            endTime = new Date().getTime() / 1000;
+            res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
+                { 	
+                    AESInput : data,
+                    AESPassword: password,
+                    AESCipher : cipher, 
+                    AESKeyLength : keySize,
+                    AESEncryptionTime : (endTime - startTime)
                 }
-            });
-        }
-        endTime = new Date().getTime() / 1000;
-        res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
-            { 	
-                AESInput : data,
-                AESPassword: password,
-                AESCipher : cipher, 
-                AESKeyLength : keySize,
-                AESEncryptionTime : (endTime - startTime)
-            }
-        );
+            );
+        });
+        
     });
 });
 app.post('/decrypt_aes', function (req, res) {
@@ -65,34 +68,36 @@ app.post('/decrypt_aes', function (req, res) {
 	var file = input.File;
     var password = input.Pass;
     var newFile = input.NewFile;
-
+    var method = input.Method;
 	var startTime;
 	var endTime;
-
-	var plaintext;
-	//aes.generateKeys(keySize);
     
+    //delete file if it exist
+    fs.exists(path.join(__dirname, 'inputs', newFile),function(exists){
+        if(exists){
+            fs.unlink(path.join(__dirname, 'inputs', newFile));
+        }
+    });
+
+	//aes.generateKeys(keySize);
     var fileInput = fs.readFile(path.join(__dirname, 'inputs', file), 'binary', function (err, data) {
         if(err)
         {
             throw (err);
         }
-        startTime = new Date().getTime() / 1000;
-        plaintext = aes.decrypt(data,password,keySize);
+        
+        startTime = new Date().getTime() / 1000;  
+        var wstream = fs.createWriteStream(path.join(__dirname, 'inputs', newFile),{flags:'a',encoding:'binary'});
+        wstream.on('open',function(res){
+            aes.decryptCipher(data,password,keySize,wstream,method);
+            wstream.end();
+        });
         endTime = new Date().getTime() / 1000;
-        if(newFile!=""){
-            fs.writeFile(path.join(__dirname, 'inputs', newFile), plaintext, 'binary', function (err) {
-                if(err)
-                {
-                    throw (err);
-                }
-            });
-        }
         res.render(path.join(__dirname, 'views', 'AESDecryptionResults.html'), 
             { 	
                 AESInput : data,
                 AESPassword: password,
-                AESCipher : plaintext, 
+                //AESCipher : plaintext, 
                 AESKeyLength : keySize,
                 AESDecryptionTime : (endTime - startTime)
             }

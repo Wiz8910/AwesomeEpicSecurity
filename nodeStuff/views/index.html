@@ -51,6 +51,14 @@
 						<td> SaveAs </td>
 						<td> <input type="text" id="eAESFileOutput"/> </td>
 					</tr>
+                    <tr><td>EncryptionMethod</td>
+						<td>
+							<form>
+								<input type="checkbox" name="codeBook" id="encryptCodeBook">Electronic Codebook<br>
+								<input type="checkbox" name="blockChaining" id="encryptBlockChaining">Cipher Block Chaining<br>
+							</form>
+						</td>
+                    </tr>
 				</table> </br>
 				<button style="width:20%; height: 10%;" onclick="encryptAES()">
 					Encrypt
@@ -122,6 +130,14 @@
 						<td> SaveAs </td>
 						<td> <input type="text" id="dAESFileOutput"/> </td>
 					</tr>
+                    <tr><td>EncryptionMethod</td>
+						<td>
+							<form>
+								<input type="checkbox" name="codeBook" id="decryptCodeBook">Electronic Codebook<br>
+								<input type="checkbox" name="blockChaining" id="decryptBlockChaining">Cipher Block Chaining<br>
+							</form>
+						</td>
+                    </tr>
 				</table> </br>
 				<button style="width:20%; height: 10%;" onclick="decryptAES()">
 					Decrypt
@@ -176,6 +192,7 @@
 </body>
 <script type="text/javascript">
 	function encryptAES() {
+        console.log("called");
 		var inputs = getAESEncryptionInputs();
 		
 		// If the inputs are valid, begin encryptiong
@@ -192,7 +209,6 @@
 				att.setAttribute('type', 'text');
 				att.setAttribute('name', key);
 				att.setAttribute('value', inputs.Values[key]);
-
 				form.appendChild(att);
 			}
 			// Attach the form, submit it, then remove it (since there is not reason to keep it)
@@ -356,6 +372,12 @@
 			result.Valid = false;
 			result.Message.push('Key Size Must be of Size 128, 192, or 256 for AES Encryption!\n');
 		}
+        var method;
+        if(document.getElementById('encryptBlockChaining').checked == true){
+           method ="cbc";
+        }else{
+           method="cb";
+        }
         if(result.Valid)
 		{
 			result.Values = {};
@@ -363,6 +385,7 @@
 			result.Values.File = fileInput;
 			result.Values.Pass = password;
             result.Values.NewFile = newFile;
+            result.Values.Method = method;
         }
 		return result;
 	}
@@ -392,6 +415,12 @@
 			result.Valid = false;
 			result.Message.push('Key Size Must be of Size 128, 192, or 256 for AES Decryption!\n');
 		}
+         var method;
+        if(document.getElementById('decryptBlockChaining').checked == true){
+           method ="cbc";
+        }else{
+           method="cb";
+        }
         if(result.Valid)
 		{
 			result.Values = {};
@@ -399,6 +428,7 @@
 			result.Values.File = fileInput;
 			result.Values.Pass = password;
             result.Values.NewFile = newFile;
+            result.Values.Method = method;
         }
 		return result;
 	}
