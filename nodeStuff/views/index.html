@@ -47,6 +47,10 @@
 						<td> Password </td>
 						<td> <input type="text" id="eAESPassword"/> </td>
 					</tr>
+					<tr>
+						<td> Initialization Vector </td>
+						<td> <input type="text" id="eAESInitVector"/> </td>
+					</tr>
                     <tr>
 						<td> SaveAs </td>
 						<td> <input type="text" id="eAESFileOutput"/> </td>
@@ -126,6 +130,10 @@
 						<td> Password </td>
 						<td> <input type="text" id="dAESPassword"/> </td>
 					</tr>
+					<tr>
+						<td> Initialization Vector </td>
+						<td> <input type="text" id="dAESInitVector"/> </td>
+					</tr>
                     <tr>
 						<td> SaveAs </td>
 						<td> <input type="text" id="dAESFileOutput"/> </td>
@@ -192,7 +200,6 @@
 </body>
 <script type="text/javascript">
 	function encryptAES() {
-        console.log("called");
 		var inputs = getAESEncryptionInputs();
 		
 		// If the inputs are valid, begin encryptiong
@@ -219,6 +226,7 @@
 		// Otherwise, tell the user what is wrong
 		else
 		{
+            console.log('invalid inputs');
 			var message = '';
 
 			for(var key in inputs.Message)
@@ -352,7 +360,7 @@
 		var fileInput = document.getElementById('eAESFileInput').value;
 		var keySize = document.getElementById('eAESKeyLength').value;
         var newFile = document.getElementById('eAESFileOutput').value;
-        
+        var initializationVector = document.getElementById('eAESInitVector').value;
 		var result = {};
 		result.Valid = true;
 		result.Message = [];
@@ -378,6 +386,7 @@
         }else{
            method="cb";
         }
+        console.log("Got to result");
         if(result.Valid)
 		{
 			result.Values = {};
@@ -386,6 +395,7 @@
 			result.Values.Pass = password;
             result.Values.NewFile = newFile;
             result.Values.Method = method;
+            result.Values.InitVector = initializationVector;
         }
 		return result;
 	}
@@ -395,6 +405,7 @@
 		var fileInput = document.getElementById('dAESFileInput').value;
 		var keySize = document.getElementById('dAESKeyLength').value;
         var newFile = document.getElementById('dAESFileOutput').value;
+        var initializationVector = document.getElementById('dAESInitVector').value;
         
 		var result = {};
 		result.Valid = true;
@@ -429,6 +440,7 @@
 			result.Values.Pass = password;
             result.Values.NewFile = newFile;
             result.Values.Method = method;
+            result.Values.InitVector = initializationVector;
         }
 		return result;
 	}

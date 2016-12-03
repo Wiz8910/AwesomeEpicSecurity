@@ -37,6 +37,10 @@
 					<td id="AESPassword"></td>
 				</tr>
 				<tr>
+					<td>Initialization Vector</td>
+					<td id="AESInitVector"></td>
+				</tr>
+				<tr>
 					<td>Seconds to Encrypt</td>
 					<td id="AESDecryptionTime"></td>
 				</tr>
@@ -48,6 +52,7 @@
 	var AESPassword = <%- JSON.stringify(AESPassword) %>;
 	var AESKeyLength = <%- JSON.stringify(AESKeyLength) %>;
 	var AESDecryptionTime = <%- JSON.stringify(AESDecryptionTime) %>;
+	var AESInitVector = <%- JSON.stringify(AESInitVector) %>;
 
     if(AESKeyLength != '')
 	{
@@ -60,6 +65,10 @@
 	if(AESDecryptionTime != '')
 	{
 		document.getElementById('AESDecryptionTime').innerHTML = AESDecryptionTime;
+	}
+	if(AESInitVector != '')
+	{
+		document.getElementById('AESInitVector').innerHTML = AESInitVector;
 	}
 </script>
 </html>
