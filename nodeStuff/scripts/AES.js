@@ -53,20 +53,31 @@ module.exports ={
         var keySchedule = keyExpansion(key);
         
         var blockCount = Math.ceil(inputFile.length/blockSize);
+        var padLength;
+        if(inputFile.length%blockSize==0){
+            padLength = blockSize;
+            blockCount = blockCount+1;
+        }else{
+            padLength = inputFile.length%blockSize;
+        }
         var cipherText = [];
         var prevCipherBlock;
         var outText="";
         for (var i=0; i<blockCount; i++) {
             // block size is reduced on final block
-            var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
+            //var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
             
-            for(var k=0;k<blockLength;k++){
-                plaintextBlock[k]=inputFile.charCodeAt(i*blockLength+k);
+            for(var k=0;k<blockSize;k++){
+                if(i*blockSize+k>inputFile.length){
+                    plaintextBlock[k] = padLength;
+                }else{
+                    plaintextBlock[k]=inputFile.charCodeAt(i*blockSize+k);
+                }
             }
             if(mode==="cbc"){
                 if(i==0){
                     //xor first block with password
-                    for (var k=0; k<blockLength; k++) {
+                    for (var k=0; k<blockSize; k++) {
                         // xor inputFile with ciphered counter char
                         plaintextBlock[k] = initBytes[k] ^ plaintextBlock[k];
                         //plaintextBlock[k] = String.fromCharCode(plaintextBlock[k]);
@@ -74,7 +85,7 @@ module.exports ={
                 }else{
                     //
                     //otherwise xor with prevCipherBlock
-                    for (var k=0; k<blockLength; k++) {
+                    for (var k=0; k<blockSize; k++) {
                         // xor inputFile with ciphered counter char
                         plaintextBlock[k] = prevCipherBlock[k] ^ plaintextBlock[k];
                     }
@@ -135,11 +146,10 @@ module.exports ={
         var cipherXor;
         var prevCipherBlock;
         var outText="";
+        var bytesRemaining;
         for (var i=0; i<blockCount; i++) {
             // block size is reduced on final block
-            var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
-            
-            for(var k=0;k<blockLength;k++){
+            for(var k=0;k<blockSize;k++){
                 encryptextBlock[k]=inputFile.charCodeAt(i*blockSize+k);
             }
             //console.log(encryptextBlock);
@@ -147,7 +157,7 @@ module.exports ={
             if(mode ==="cbc"){
                 if(i==0){
                     //xor first block with password
-                    for (var k=0; k<blockLength; k++) {
+                    for (var k=0; k<blockSize; k++) {
                         // xor inputFile with ciphered counter char
                         plainBlock[k] = initBytes[k] ^ plainBlock[k];
                         //plainBlock[k] = String.fromCharCode(plainBlock[k]);
@@ -155,7 +165,7 @@ module.exports ={
                     prevCipherBlock = encryptextBlock.slice();
                 }else{
                     //otherwise xor with prevPlainBlock
-                    for (var k=0; k<blockLength; k++) {
+                    for (var k=0; k<blockSize; k++) {
                         // xor inputFile with ciphered counter char
                         plainBlock[k] = prevCipherBlock[k] ^ plainBlock[k];
                         //plainBlock[k] = String.fromCharCode(plainBlock[k]);
@@ -164,10 +174,16 @@ module.exports ={
                 }
             }
             var formatted ="";
+            var bytesRemaining = inputFile.length -i*blockSize;
             for(var k=0;k<plainBlock.length;k++){
-                formatted+=String.fromCharCode(plainBlock[k]);
+                //need to drop the padding from output
+                if(!(plainBlock[k] == bytesRemaining && bytesRemaining<=blockSize)){
+                    formatted+=String.fromCharCode(plainBlock[k]); 
+                }
             }
-            outText+=formatted;
+            if(formatted!=""){
+                outText+=formatted;
+            }
             if(i%maxBytes==0){
                 fileWriter.write(outText,'binary');
                 outText="";
@@ -236,63 +252,48 @@ var Cipher = function(input, word){
     var state = [[], [], [], []];
     //need to convert input to 2d byte array
     for (var i=0; i<4*blockSize; i++) state[i%4][Math.floor(i/4)] = input[i];
-    //console.log("States");
-    //console.log(state);
     state = AddRoundKey(state,word,0,blockSize);
-    //console.log(state);
     //last round is different behavior
     for(var i=1; i<rounds; i++){
         state = SubBytes(state,blockSize);
         state = ShiftRows(state,blockSize);
         state = MixColumns(state,blockSize);
         state = AddRoundKey(state,word,i,blockSize);
-       // console.log(state);
     }
     //final round slightly different, no MixColumns
     state = SubBytes(state,blockSize);
     state = ShiftRows(state,blockSize);
     state = AddRoundKey(state,word,rounds,blockSize);
-   // console.log(state);
     
     //now output as 1d array
     var output = new Array(4*blockSize);
     for (var i=0; i<4*blockSize; i++) output[i] = state[i%4][Math.floor(i/4)];
-    //console.log(output);
     return output;
 }
 
 //input is bits to convert, word - key schedule 2d byte-array(128,192,256 bits)
 var decrCipher = function(input, word){
-    //console.log("DecrCipher");
-    //console.log(input);
     var blockSize = 4;
     var rounds = word.length/blockSize - 1;
     var state = [[], [], [], []];
     //need to convert input to 2d byte array
     for (var i=0; i<4*blockSize; i++) state[i%4][Math.floor(i/4)] = input[i];
-    //console.log("States");
-    //console.log(state);
     state = AddRoundKey(state,word,rounds,blockSize);
     
-    //console.log(state);
     for(var i=rounds-1; i>0; i--){
         state = InvShiftRows(state,blockSize);
         state = InvSubBytes(state,blockSize);
         state = AddRoundKey(state,word,i,blockSize);
         state = InvMixColumns(state,blockSize);
-       // console.log(state);
     }
     
     //first round slightly different, no MixColumns
     state = InvShiftRows(state,blockSize);
     state = InvSubBytes(state,blockSize);
     state = AddRoundKey(state,word,0,blockSize);
-    //console.log(state);
     
-    //now output as 1d array
     var output = new Array(4*blockSize);
     for (var i=0; i<4*blockSize; i++) output[i] = state[i%4][Math.floor(i/4)];
-    //console.log(output);
     return output;
 }
 
@@ -406,24 +407,17 @@ var MixColumns = function(state,blockSize){
         var column2 = new Array(4);
         for(var k=0;k<4;k++){
             column1[k] = state[k][i];
-            //do division
-            //column2 = state[k][i]&0x80? state[k][i]<<1 ^ 0x011b : state[k][i]<<1;
         }
-        //operations I don't really understand, just doing what I was told
+        //do polynomial multiplication with given numbers
         state[0][i] = polyMult(column1[0],2)^polyMult(column1[1],3)^polyMult(column1[2],1)^polyMult(column1[3],1);
         state[1][i] = polyMult(column1[0],1)^polyMult(column1[1],2)^polyMult(column1[2],3)^polyMult(column1[3],1);
         state[2][i] = polyMult(column1[0],1)^polyMult(column1[1],1)^polyMult(column1[2],2)^polyMult(column1[3],3);
         state[3][i] = polyMult(column1[0],3)^polyMult(column1[1],1)^polyMult(column1[2],1)^polyMult(column1[3],2);
-        /*
-        state[0][i] = column2[0] ^column1[1]^column2[1]^column1[2]^column1[3]; // {02}•a0 + {03}•a1 + a2 + a3
-        state[1][i] = column1[0] ^column2[1]^column1[1]^column2[2]^column1[3]; // a0 • {02}•a1 + {03}•a2 + a3
-        state[2][i] = column1[0] ^column1[1]^column2[1]^column1[2]^column2[3]; // a0 + a1 + {02}•a2 + {03}•a3
-        state[3][i] = column1[0] ^column2[1]^column1[1]^column1[2]^column2[3]; // {03}•a0 + a1 + a2 + {02}•a3
-        */
     }
     return state;
 }
 
+//polynomial multiplication for given field. Doing operations as outlined in docs
 var polyMult = function(a,b){
     var result = 0;
     if(a==0||b==0){return result;}
@@ -446,15 +440,12 @@ var InvMixColumns = function(state,blockSize){
         var column1 = new Array(4);
         for(var k=0;k<4;k++){
             column1[k] = state[k][i];
-            //do division
-            //column2 = state[k][i]&0x80? state[k][i]<<1 ^ 0x011b : state[k][i]<<1;
         }
-        //console.log(column1);
-        //operations I don't really understand, just doing what I was told
-        state[0][i] = polyMult(column1[0],0x0E)^polyMult(column1[1],0x0B)^polyMult(column1[2],0x0D)^polyMult(column1[3],0x09);//MULTE[column1[0]]^MULTB[column1[1]]^MULTD[column1[2]]^MULT9[column1[3]];
-        state[1][i] = polyMult(column1[0],0x09)^polyMult(column1[1],0x0E)^polyMult(column1[2],0x0B)^polyMult(column1[3],0x0D);//MULT9[column1[0]]^MULTE[column1[1]]^MULTB[column1[2]]^MULTD[column1[3]];
-        state[2][i] = polyMult(column1[0],0x0D)^polyMult(column1[1],0x09)^polyMult(column1[2],0x0E)^polyMult(column1[3],0x0B);//MULTD[column1[0]]^MULT9[column1[1]]^MULTE[column1[2]]^MULTB[column1[3]];
-        state[3][i] = polyMult(column1[0],0x0B)^polyMult(column1[1],0x0D)^polyMult(column1[2],0x09)^polyMult(column1[3],0x0E);// MULTB[column1[0]]^MULTD[column1[1]]^MULT9[column1[2]]^MULTE[column1[3]];
+        //do polynomial multiplication with given numbers
+        state[0][i] = polyMult(column1[0],0x0E)^polyMult(column1[1],0x0B)^polyMult(column1[2],0x0D)^polyMult(column1[3],0x09);
+        state[1][i] = polyMult(column1[0],0x09)^polyMult(column1[1],0x0E)^polyMult(column1[2],0x0B)^polyMult(column1[3],0x0D);
+        state[2][i] = polyMult(column1[0],0x0D)^polyMult(column1[1],0x09)^polyMult(column1[2],0x0E)^polyMult(column1[3],0x0B);
+        state[3][i] = polyMult(column1[0],0x0B)^polyMult(column1[1],0x0D)^polyMult(column1[2],0x09)^polyMult(column1[3],0x0E);
     }
     return state;
 }
