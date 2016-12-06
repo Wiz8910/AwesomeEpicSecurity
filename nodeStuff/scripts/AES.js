@@ -1,6 +1,6 @@
-/**
- * 
- */
+//File: AES.js  
+//Purpose: this file contains the methods needed to encrypt and decrypt under AES,
+//as well as code to take input and encrypt or decrypt under either ECB or CBC modes
  
 var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 var maxBytes = 300000;
@@ -54,12 +54,14 @@ module.exports ={
         
         var blockCount = Math.ceil(inputFile.length/blockSize);
         var padLength;
+        //figure how much we need to pad by
         if(inputFile.length%blockSize==0){
             padLength = blockSize;
             blockCount = blockCount+1;
         }else{
-            padLength = inputFile.length%blockSize;
+            padLength = blockSize - inputFile.length%blockSize;
         }
+        
         var cipherText = [];
         var prevCipherBlock;
         var outText="";
@@ -68,7 +70,7 @@ module.exports ={
             //var blockLength = i<blockCount-1 ? blockSize : (inputFile.length-1)%blockSize+1;
             
             for(var k=0;k<blockSize;k++){
-                if(i*blockSize+k>inputFile.length){
+                if(i*blockSize+k>=inputFile.length){
                     plaintextBlock[k] = padLength;
                 }else{
                     plaintextBlock[k]=inputFile.charCodeAt(i*blockSize+k);
@@ -80,7 +82,6 @@ module.exports ={
                     for (var k=0; k<blockSize; k++) {
                         // xor inputFile with ciphered counter char
                         plaintextBlock[k] = initBytes[k] ^ plaintextBlock[k];
-                        //plaintextBlock[k] = String.fromCharCode(plaintextBlock[k]);
                     }
                 }else{
                     //
@@ -109,7 +110,6 @@ module.exports ={
         if(outText!=""){
             fileWriter.write(outText,'binary');
         }
-        //console.log(prevCipherBlock);
         return [password,initVector];
     },
 
@@ -173,13 +173,14 @@ module.exports ={
                     prevCipherBlock = encryptextBlock.slice();
                 }
             }
+            //need to drop padded bytes
+            if(i===blockCount-1){
+                var bytesToRemove = plainBlock[plainBlock.length-1];
+                plainBlock.splice(plainBlock.length-bytesToRemove,bytesToRemove);
+            }
             var formatted ="";
-            var bytesRemaining = inputFile.length -i*blockSize;
             for(var k=0;k<plainBlock.length;k++){
-                //need to drop the padding from output
-                if(!(plainBlock[k] == bytesRemaining && bytesRemaining<=blockSize)){
-                    formatted+=String.fromCharCode(plainBlock[k]); 
-                }
+                formatted+=String.fromCharCode(plainBlock[k]);
             }
             if(formatted!=""){
                 outText+=formatted;
@@ -227,6 +228,7 @@ var sBox = [ 0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0x
              0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
              0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
              0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16 ];
+// the inverse of the inverses
 var InvsBox = [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
                0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
                0x54, 0x7B, 0x94, 0x32, 0xA6, 0xC2, 0x23, 0x3D, 0xEE, 0x4C, 0x95, 0x0B, 0x42, 0xFA, 0xC3, 0x4E,
@@ -355,6 +357,7 @@ var SubBytes = function(state){
     return state;
 }
 
+//use given inverse box to undo above
 var InvSubBytes = function(state){
     for(var i=0; i<4; i++){
         for(var k=0; k<4;k++){
@@ -364,14 +367,13 @@ var InvSubBytes = function(state){
     return state;
 }
 
-//use Substitute box for keyShift
+//Substitute box for keyShift
 var SubWord = function(word){
     for(var i=0; i<4; i++){
         word[i] = sBox[word[i]];
     }
     return word;
 }
-
 
 //rotation for keyShift
 var RotWord = function(word){
@@ -390,10 +392,11 @@ var ShiftRows = function(state){
     }
     return state;
 }
-
+//undo the above operation
 var InvShiftRows = function(state){
     var temp = new Array(4);
     for(var i=1; i<4; i++){
+      //i suppose i didnt need to decrement instead of increment
       for(var k=3; k>=0; k--){ temp[k] = state[i][(4-i+k)%4];}
       for(var k=3; k>=0; k--){ state[i][k] = temp[k];}
     }
@@ -418,12 +421,14 @@ var MixColumns = function(state,blockSize){
 }
 
 //polynomial multiplication for given field. Doing operations as outlined in docs
+//and wikapedia
 var polyMult = function(a,b){
     var result = 0;
+    //check for special cases
     if(a==0||b==0){return result;}
     if(a==1){return b;}
     if(b==1){return a;}
-    //console.log(a+" "+b);
+    //handy maths for multiplication in the field for AES
     for (var i = 0; i < 8; i++) {
         if (b & 1) result ^= a;
         var hiBitSet = a & 0x80;
@@ -431,12 +436,12 @@ var polyMult = function(a,b){
         if (hiBitSet) a ^= 0x1b;
         b >>>= 1;
     }
-    //console.log(result);
     return result&0xFF;
 }
 
 var InvMixColumns = function(state,blockSize){
     for(var i=0; i<4; i++){
+        //convert state to array
         var column1 = new Array(4);
         for(var k=0;k<4;k++){
             column1[k] = state[k][i];

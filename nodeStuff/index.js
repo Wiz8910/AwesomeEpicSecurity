@@ -44,26 +44,25 @@ app.post('/encrypt_aes', function (req, res) {
         }
         startTime = new Date().getTime() / 1000;
         var wstream = fs.createWriteStream(path.join(__dirname, 'inputs', newFile),{flags:'a',encoding:'binary'});
-        wstream.on('open',function(res){
+        wstream.on('open',function(junk){
             var result = aes.encryptCipher(data,password,initVector,keySize,wstream,method);
             password = result[0];
             initVector = result[1];
             wstream.end();
+            //now doing asyncrhonous writes
+            //wstream.on('finish',function(){
+            endTime = new Date().getTime() / 1000;
+            res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
+                { 	
+                    AESInput : data,
+                    AESPassword: password,
+                    AESCipher : cipher, 
+                    AESKeyLength : keySize,
+                    AESInitVector : initVector,
+                    AESEncryptionTime : (endTime - startTime)
+                }
+            );
         });
-        //now doing asyncrhonous writes
-        //wstream.on('finish',function(){
-        endTime = new Date().getTime() / 1000;
-        res.render(path.join(__dirname, 'views', 'AESEncryptionResults.html'), 
-            { 	
-                AESInput : data,
-                AESPassword: password,
-                AESCipher : cipher, 
-                AESKeyLength : keySize,
-                AESInitVector : initVector,
-                AESEncryptionTime : (endTime - startTime)
-            }
-        );
-       // });
         
     });
 });
@@ -94,24 +93,21 @@ app.post('/decrypt_aes', function (req, res) {
         
         startTime = new Date().getTime() / 1000;  
         var wstream = fs.createWriteStream(path.join(__dirname, 'inputs', newFile),{flags:'a',encoding:'binary'});
-        wstream.on('open',function(res){
+        wstream.on('open',function(test){
             aes.decryptCipher(data,password,initVector,keySize,wstream,method);
-            wstream.end();
+            wstream.end();//pointless to make user wait for write to finish, so gonna just spawn asyncrhonous writes
+            //wstream.on('finish',function(){
+            endTime = new Date().getTime() / 1000;
+            res.render(path.join(__dirname, 'views', 'AESDecryptionResults.html'), 
+                { 	
+                    AESInput : data,
+                    AESPassword: password,
+                    AESKeyLength : keySize,
+                    AESInitVector : initVector,
+                    AESDecryptionTime : (endTime - startTime)
+                }
+            );
         });
-        //pointless to make user wait for write to finish, so gonna just spawn asyncrhonous writes
-        //wstream.on('finish',function(){
-        endTime = new Date().getTime() / 1000;
-        res.render(path.join(__dirname, 'views', 'AESDecryptionResults.html'), 
-            { 	
-                AESInput : data,
-                AESPassword: password,
-                //AESCipher : plaintext, 
-                AESKeyLength : keySize,
-                AESInitVector : initVector,
-                AESDecryptionTime : (endTime - startTime)
-            }
-        );
-        //});
     });
 });
 
