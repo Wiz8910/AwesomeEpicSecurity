@@ -15,6 +15,8 @@ var c;
 var c_hex;
 var c_string;
 var m_prime;
+var byteSize;
+var cipherBuffer;
 
 module.exports = {
 	generateKeys : function(keySize)
@@ -43,6 +45,54 @@ module.exports = {
 		} while (e == p || e == q);
 
 		d = e.modInverse(totient);
+	},
+
+	setByteSize : function(size)
+	{
+		byteSize = size;
+	},
+
+	getByteSize : function()
+	{
+		return byteSize;
+	},
+
+	setCipherBuffer : function(buffer)
+	{
+		cipherBuffer = buffer;
+	},
+
+	getCipherBuffer : function()
+	{
+		return cipherBuffer;
+	},
+
+	encryptBuffer : function(buffer)
+	{
+		m = new BigInteger.fromBuffer(buffer);
+		console.log(m.toString());
+		c = m.modPow(e, n);
+		return c;
+	},
+
+	encryptBigInteger : function(big)
+	{
+		m = big
+		c = m.modPow(e, n);
+		return c;
+	},
+
+	decryptBuffer : function(buffer)
+	{
+		c = new BigInteger.fromBuffer(buffer);
+		m_prime = c.modPow(d, n);
+		return m_prime;
+	},
+
+	decryptBufferPrevious : function()
+	{
+		m_prime = c.modPow(d, n);
+		return m_prime;
 	},
 
 	encrypt : function(message)

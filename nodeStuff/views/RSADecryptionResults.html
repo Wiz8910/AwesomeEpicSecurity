@@ -29,14 +29,6 @@
 		<div class="right_col" align="center">
 			<table id="RSAEncryptionInformationTable">
 				<tr>
-					<td>Cipher</td>
-					<td id="RSADecryptionCipher"></td>
-				</tr>
-				<tr>
-					<td>Message</td>
-					<td id="RSADecryptionMessage"></td>
-				</tr>
-				<tr>
 					<td>Seconds to Decrypt</td>
 					<td id="RSADecryptionTime"></td>
 				</tr>
@@ -49,14 +41,6 @@
 	var RSAMessage = <%- JSON.stringify(RSAMessage) %>;
 	var RSATime = <%- JSON.stringify(RSATime) %>;
 
-	if(RSACipher != '')
-	{
-		document.getElementById('RSADecryptionCipher').innerHTML = RSACipher
-	}
-	if(RSAMessage != '')
-	{
-		document.getElementById('RSADecryptionMessage').innerHTML = RSAMessage;
-	}
 	if(RSATime != '')
 	{
 		document.getElementById('RSADecryptionTime').innerHTML = RSATime;

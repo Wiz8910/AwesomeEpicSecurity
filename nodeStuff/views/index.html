@@ -82,24 +82,12 @@
 						<td> <input type="file" id="eRSAFileInput"/> </td>
 					</tr>
 					<tr>
-						<td> Message </td>
-						<td> <input type="text" id="eRSAMessageInput"/> </td>
-					</tr>
-					<tr>
 						<td> Key Size </td>
 						<td> <input type="text" id="eRSAKeyLength"/> </td>
 					</tr>
 					<tr>
 						<td> SaveAs </td>
 						<td> <input type="text" id="eRSAFileOutput"/> </td>
-					</tr>
-					<tr>
-						<td> Encryption Information </td>
-						<td>
-							<form>
-								<input type="checkbox" name="eRSAFileMethod" id="useRSAFile">Encrypt File<br>
-							</form>
-						</td>
 					</tr>
 				</table> </br>
 				<button style="width:20%; height: 10%;" onclick="encryptRSA()">
@@ -161,34 +149,8 @@
 						<th> Value </th>
 					</tr>
 					<tr>
-						<td> File to Decrypt </td>
-						<td> <input type="file" id="dRSAFileInput"/> </td>
-					</tr>
-					<tr>
-						<td> Cipher to Decrypt </td>
-						<td> <input type="text" id="dRSACipher"/> </td>
-					</tr>
-					<tr>
-						<td>Public Key (n)</td>
-						<td> <input type="text" id="dRSAPublicKeyN"/> </td>
-					</tr>
-					<tr>
-						<td>Private Key (d)</td>
-						<td> <input type="text" id="dRSAPrivateKey"/></td>
-					</tr>
-					<tr>
 						<td> SaveAs </td>
 						<td> <input type="text" id="dRSAFileOutput"/> </td>
-					</tr>
-					<tr>
-						<td> Decryption Method </td>
-						<td>
-							<form>
-								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionFile">Use Provided File<br>
-								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionMessage">Use Provided String<br>
-								<input type="checkbox" name="dRSAMethod" id="useRSADecryptionPrevious">Use Preivous Encryption Info<br>
-							</form>
-						</td>
 					</tr>
 				</table> </br>
 				<button style="width:20%; height: 10%;" onclick="decryptRSA()">
@@ -447,7 +409,6 @@
     
 	function getRSAEncryptionInputs() {
 		var fileInput = document.getElementById('eRSAFileInput').value;
-		var messageInput = document.getElementById('eRSAMessageInput').value;
 		var keySize = document.getElementById('eRSAKeyLength').value;
 		var newFile = document.getElementById('eRSAFileOutput').value;
 
@@ -460,21 +421,10 @@
 			result.Valid = false;
 			result.Message.push('Enter an Key Size for RSA!\n');
 		}
-		if(document.getElementById('useRSAFile').checked == true)
+		if(fileInput == '')
 		{
-			if(fileInput == '')
-			{
-				result.Valid = false;
-				result.Message.push('Provide a File to Encrypt for the RSA Public Key!\n');
-			}
-		}
-		else
-		{
-			if(messageInput == '')
-			{
-				result.Valid = false;
-				result.Message.push('Provide a Message to Encrypt for the RSA Public Key!\n');
-			}
+			result.Valid = false;
+			result.Message.push('Provide a File to Encrypt for the RSA Public Key!\n');
 		}
 		
 		if(result.Valid)
@@ -482,18 +432,18 @@
 			result.Values = {};
 			result.Values.Size = keySize;
 			result.Values.File = fileInput;
-			result.Values.Message = messageInput;
 			result.Values.NewFile = newFile
-			result.Values.Input = (document.getElementById('useRSAFile').checked ? 'file' : 'message');
 		}
 
 		return result;
 	}
+	
 	function getRSADecryptionInputs() {
-		var cipher = document.getElementById('dRSACipher').value;
-		var file = document.getElementById('dRSAFileInput').value;
+		var newFile = document.getElementById('dRSAFileOutput').value;
+		/*var file = document.getElementById('dRSAFileInput').value;
 		var publicN = document.getElementById('dRSAPublicKeyN').value;
 		var private = document.getElementById('dRSAPrivateKey').value;
+		var byteSize = document.getElementById('dRSAByteSizeKey').value;
 		var newFile = document.getElementById('dRSAFileOutput').value;
 
 		var result = {};
@@ -514,23 +464,16 @@
 				result.Valid = false;
 				result.Message.push('Enter the private key value!\n');
 			}
-			if(document.getElementById('useRSADecryptionFile').checked == true)
+			if(byteSize == '')
 			{
-				result.Values.Decrypt = 'file';
-				if(file == '')
-				{
-					result.Valid = false;
-					result.Message.push('Enter a file to decrypt!\n');
-				}
+				result.Valid = false;
+				result.Message.push('Enter a byte size for the buffer!\n');
 			}
-			else if(document.getElementById('useRSADecryptionMessage').checked == true)
+			result.Values.Decrypt = 'file';
+			if(file == '')
 			{
-				result.Values.Decrypt = 'string';
-				if(cipher == '')
-				{
-					result.Valid = false;
-					result.Message.push('Enter a cipher to decrypt!\n');
-				}
+				result.Valid = false;
+				result.Message.push('Enter a file to decrypt!\n');
 			}
 		}
 		else
@@ -540,12 +483,17 @@
 		
 		if(result.Valid)
 		{
-			result.Values.Cipher = cipher;
 			result.Values.PublicN = publicN;
 			result.Values.Private = private;
 			result.Values.File = file;
+			result.Values.ByteSize = byteSize;
 			result.Values.NewFile = newFile;
-		}
+		}*/
+		var result = {};
+		result.Valid = true;
+		result.Message = [];
+		result.Values = {};
+		result.Values.NewFile = newFile;
 
 		return result;
 	}
