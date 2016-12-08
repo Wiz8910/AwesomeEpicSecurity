@@ -114,25 +114,26 @@ app.post('/decrypt_aes', function (req, res) {
 });
 
 app.post('/encrypt_rsa', function (req, res) {
+	// Get info on how to encrypt the file and which file to encrypt
 	var input = req.body;
-
 	var size = input.Size;
 	var file = input.File;
 	var newFile = input.NewFile;
 
+	// Start and end time for tracking encryption
 	var startTime;
 	var endTime;
 
-	var cipher;
-
+	// Read the input file
 	fs.readFile(path.join(__dirname, 'inputs', file), function (err, fileInput) {
-		// split File into 128 byte chunks
+		// split File into 128 byte chunks which relates to a 1024 bit key size (can't go any smaller)
 		var startSource = 0;
 		var endSource = 128;
 		var remainingBytes = fileInput.byteLength;
 		var message = [];
 		var index = 0;
 
+		// Read the file into an array of buffers
 		while(remainingBytes > 0)
 		{
 			if(remainingBytes >= 128)
@@ -157,6 +158,7 @@ app.post('/encrypt_rsa', function (req, res) {
 		
 		console.log('generating keys');
 
+		// Generate the RSA encryption keys
 		var startTime = new Date().getTime() / 1000;
 		rsa.generateKeys(size);
 
@@ -170,11 +172,9 @@ app.post('/encrypt_rsa', function (req, res) {
 		}
 		var endTime = new Date().getTime() / 1000;
 
-		rsa.setByteSize(ciphertext[0].toBuffer().byteLength);
 		rsa.setCiphertext(ciphertext);
 		
-		// Convert to buffer
-		// First get the last buffer to get the full size of the big buffer
+		// Create a buffer to write to a file
 		var lastBuffer = new Buffer(ciphertext[ciphertext.length - 1].toBuffer(), 'base64');
 		var bufferSize = ((ciphertext.length - 1) * 128 + lastBuffer.byteLength);
 		var bigBuffer = new Buffer(bufferSize);
@@ -188,20 +188,19 @@ app.post('/encrypt_rsa', function (req, res) {
 			currentBuffer.copy(bigBuffer, i * 128, 0, currentBuffer.byteLength);
 		}
 
-		rsa.setCipherBuffer(bigBuffer);
-
+		// write to file
 		if(newFile != '')
 		{
 			console.log('printing to file');
 			fs.writeFile(path.join(__dirname, 'inputs', newFile), bigBuffer, function(err) {});
 		}
 
+		// tell the world
 		res.render(path.join(__dirname, 'views', 'RSAEncryptionResults.html'), 
 			{ 	RSAMessage : message,
 				RSACipher : new BigInteger.fromBuffer(bigBuffer).toString(), 
 				RSAPublicKey : rsa.getPublicKeyHex(),
 				RSAPrivateKey : rsa.getPrivateKeyHex(),
-				RSAByteSize : rsa.getByteSize(),
 				RSATime : (endTime - startTime)
 			}
 		);
@@ -210,50 +209,32 @@ app.post('/encrypt_rsa', function (req, res) {
 });
 
 app.post('/decrypt_rsa', function (req, res) {
+	// Get where to store the decrypted file
 	var input = req.body;
-	/*var publicN = input.PublicN;
-	var private = input.Private;
-	var decrypt = input.Decrypt;
-	var file = input.File;
-	var byteSize = input.ByteSize;*/
 	var newFile = input.NewFile;
-	//var extension = input.File.split('\.')[1];
-	//var containExtension = (newFile.indexOf('\.') > 0 ? true : false);
-	//if(newFile == '')
-	//	containExtension = false;
 
-	var message;
+	// Start and end time for decryption
 	var startTime;
 	var endTime;
 
-	console.log('Getting Ciphertext');
-
-	var cipherBuffer = rsa.getCipherBuffer();
-	var byteSize = rsa.getByteSize();
-	var cipherNums = cipherBuffer.byteLength / byteSize;
-
 	console.log('getting cipher');
 
+	// Get the ciphertext from the previous RSA encryption
 	var ciphertext = rsa.getCiphertext();
-	/*for(var i = 0; i < cipherNums; i++)
-	{
-		var buffer = new Buffer(byteSize);
-		cipherBuffer.copy(buffer, 0, i * byteSize, (i + 1) * byteSize);
-		ciphertext[i] = new BigInteger.fromBuffer(buffer);
-	}*/
 
 	console.log('decrypt cipher');
 	
+	// Decrypt it
 	startTime = new Date().getTime() / 1000;
-	// Decrypt each chunk
 	var plaintext = [];
 	for(var i = 0; i < ciphertext.length; i++)
 	{
-		var cipherBuffer = ciphertext[i].toBuffer();
-		plaintext[i] = rsa.decryptBuffer(cipherBuffer);
+		//var cipherBuffer = ciphertext[i].toBuffer();
+		plaintext[i] = rsa.decryptBigInteger(ciphertext[i]);
 	}
 	endTime = new Date().getTime() / 1000;
 
+	// Create a buffer to write to a file
 	var lastBuffer = new Buffer(plaintext[plaintext.length - 1].toBuffer(), 'base64');
 	var bufferSize = ((plaintext.length - 1) * 128 + lastBuffer.byteLength);
 	var bigBuffer = new Buffer(bufferSize);
@@ -267,16 +248,16 @@ app.post('/decrypt_rsa', function (req, res) {
 		currentBuffer.copy(bigBuffer, i * 128, 0, currentBuffer.byteLength);
 	}
 
+	// Write to file
 	if(newFile != '')
 	{
 		console.log('printing to file');
 		fs.writeFile(path.join(__dirname, 'inputs', newFile), bigBuffer, function(err) {});
 	}
 
+	// Tell the world how long it took
 	res.render(path.join(__dirname, 'views', 'RSADecryptionResults.html'), 
-	{ 	RSACipher : new BigInteger.fromBuffer(cipherBuffer).toString(),
-		RSAMessage : '',
-		RSATime : (endTime - startTime)});
+	{ 	RSATime : (endTime - startTime)});
 		
 });
 

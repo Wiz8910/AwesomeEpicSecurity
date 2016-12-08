@@ -20,6 +20,7 @@ var cipherBuffer;
 var ciphertext;
 
 module.exports = {
+	// generates a p and q which are large primes to create n
 	generateKeys : function(keySize)
 	{
 		findPrime(keySize / 2, function(error, prime) {
@@ -48,44 +49,19 @@ module.exports = {
 		d = e.modInverse(totient);
 	},
 
-	setByteSize : function(size)
-	{
-		byteSize = size;
-	},
-
-	getByteSize : function()
-	{
-		return byteSize;
-	},
-
-	setCipherBuffer : function(buffer)
-	{
-		cipherBuffer = buffer;
-	},
-
-	getCipherBuffer : function()
-	{
-		return cipherBuffer;
-	},
-
+	// Sets a ciphertext to be used for decryption
 	setCiphertext : function(cipher)
 	{
 		ciphertext = cipher;
 	},
 
+	// Gets the ciphertext used for decryption
 	getCiphertext : function()
 	{
 		return ciphertext;
 	},
 
-	encryptBuffer : function(buffer)
-	{
-		m = new BigInteger.fromBuffer(buffer);
-		console.log(m.toString());
-		c = m.modPow(e, n);
-		return c;
-	},
-
+	// Encrypt a big integer
 	encryptBigInteger : function(big)
 	{
 		m = big
@@ -93,68 +69,23 @@ module.exports = {
 		return c;
 	},
 
-	decryptBuffer : function(buffer)
+	// Decrypts an encrypted big integer
+	decryptBigInteger : function(big)
 	{
-		c = new BigInteger.fromBuffer(buffer);
+		c = big
 		m_prime = c.modPow(d, n);
 		return m_prime;
 	},
 
-	decryptBufferPrevious : function()
-	{
-		m_prime = c.modPow(d, n);
-		return m_prime;
-	},
-
-	encrypt : function(message)
-	{
-		m_hex = message;
-		m = new BigInteger.fromHex(m_hex);
-		c = m.modPow(e, n);
-		return c;
-	},
-
-	decrypt : function()
-	{
-		m_prime = c.modPow(d, n);
-		return m_prime.toHex();
-	},
-
-	decrypt_hex : function(n_in, d_in, c_in)
-	{
-		c = new BigInteger.fromHex(c_in);
-		d = new BigInteger.fromHex(d_in);
-		n = new BigInteger.fromHex(n_in);
-		m_prime = c.modPow(d, n);
-		return m_prime.toHex();
-	},
-
-	getPublicKey : function()
-	{
-		return {n : n.toString(), e : e.toString()};
-	},
-
+	// Get hex representation of the public key
 	getPublicKeyHex : function()
 	{
 		return {n : n.toHex(), e : e.toHex()};
 	},
 
-	getCipherHex : function()
-	{
-		return c.toHex();
-	},
-
-
-	getPrivateKey : function()
-	{
-		return d.toString();
-	}, 
+	// Get the hex representation of the private key
 	getPrivateKeyHex : function()
 	{
 		return d.toHex();
 	}
 };
-
-function getBaseLog(x, y) {
-	return Math.log(y) / Math.log(x);
-}
