@@ -17,6 +17,7 @@ var c_string;
 var m_prime;
 var byteSize;
 var cipherBuffer;
+var ciphertext;
 
 module.exports = {
 	generateKeys : function(keySize)
@@ -65,6 +66,16 @@ module.exports = {
 	getCipherBuffer : function()
 	{
 		return cipherBuffer;
+	},
+
+	setCiphertext : function(cipher)
+	{
+		ciphertext = cipher;
+	},
+
+	getCiphertext : function()
+	{
+		return ciphertext;
 	},
 
 	encryptBuffer : function(buffer)

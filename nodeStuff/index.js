@@ -145,10 +145,6 @@ app.post('/encrypt_rsa', function (req, res) {
 			index += 1;
 			remainingBytes -= 128;
 		}
-		
-		console.log('generating keys');
-
-		rsa.generateKeys(size);
 
 		console.log('converting message to big integer');
 
@@ -158,10 +154,14 @@ app.post('/encrypt_rsa', function (req, res) {
 		{
 			bigMessage[i] = new BigInteger.fromBuffer(message[i]);
 		}
+		
+		console.log('generating keys');
+
+		var startTime = new Date().getTime() / 1000;
+		rsa.generateKeys(size);
 
 		console.log('encrypt message');
 
-		var startTime = new Date().getTime() / 1000;
 		// Encrypt each chunk
 		var ciphertext = [];
 		for(var i = 0; i < message.length; i++)
@@ -171,6 +171,7 @@ app.post('/encrypt_rsa', function (req, res) {
 		var endTime = new Date().getTime() / 1000;
 
 		rsa.setByteSize(ciphertext[0].toBuffer().byteLength);
+		rsa.setCiphertext(ciphertext);
 		
 		// Convert to buffer
 		// First get the last buffer to get the full size of the big buffer
@@ -231,13 +232,15 @@ app.post('/decrypt_rsa', function (req, res) {
 	var byteSize = rsa.getByteSize();
 	var cipherNums = cipherBuffer.byteLength / byteSize;
 
-	var ciphertext = [];
-	for(var i = 0; i < cipherNums; i++)
+	console.log('getting cipher');
+
+	var ciphertext = rsa.getCiphertext();
+	/*for(var i = 0; i < cipherNums; i++)
 	{
 		var buffer = new Buffer(byteSize);
 		cipherBuffer.copy(buffer, 0, i * byteSize, (i + 1) * byteSize);
 		ciphertext[i] = new BigInteger.fromBuffer(buffer);
-	}
+	}*/
 
 	console.log('decrypt cipher');
 	
